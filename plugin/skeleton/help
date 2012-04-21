@@ -1,0 +1,22 @@
+########################
+# Every plugin must have an help file. The line beginning with "Short:"
+# will be dispalyed when the help command is invoked without any option.
+# It's a good idea do not have more than one line for short description.
+#
+# Lines that start with "Long:" will be displayed if the command "help command"
+# is invoked. Try to format your help and remember that usual terminal window
+# consists of 80 character.
+########################
+
+Short:  skeleton	Look in the skeleton folder for an example on how to make a plugin.
+
+Long:
+Long:help skeleton
+Long:	Nothing special to do with this commando. Just look into
+Long:	the plugin/skeleton folder to find out how to make your 
+Long:	own plugin.
+Long:	
+Long:	By now, the skeleton consists only of two files: help file
+Long:	(in which these lines can be found) and main.pl, that is 
+Long:	launched when you invoke the command.
+Long:

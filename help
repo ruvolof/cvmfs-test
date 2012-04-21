@@ -1,0 +1,14 @@
+####################
+# This help file contains all help entry that are not related
+# to any of the plugin. The will be displayed everytime help command
+# is invoked. Plugin related help must be inside plugin folder.
+####################
+
+Short:Usage: command <options>
+Short:
+Short:Shell commands:
+Short:  help (h)	Print this help and exit.
+Short:  exit (q)	Exit from the shell.
+Short:
+Short:Plugin related commands:
+
