@@ -11,8 +11,8 @@
 Short:  skeleton	Look in the skeleton folder for an example on how to make a plugin.
 
 Long:
-Long:help skeleton
-Long:	Nothing special to do with this commando. Just look into
+Long:skeleton
+Long:	Nothing special to do with this command. Just look into
 Long:	the plugin/skeleton folder to find out how to make your 
 Long:	own plugin.
 Long:	

@@ -45,6 +45,7 @@ sub print_help {
 				print $helpline[1];
 			}
 		}
+		close $file;
 	}
 }
 
@@ -53,14 +54,19 @@ sub print_help {
 # already done with generic help, I think they will be almost everytime used together.
 sub print_command_help {
 	my $helpfile = shift;
-	open (my $file, $helpfile);
-	while (defined (my $line = <$file>)){
-		if($line =~ m/^Long:.*/){
-			my @helpline = split /[:]/,$line,2;
-			print $helpline[1];
+	if (defined ($helpfile)){
+		open (my $file, $helpfile);
+		while (defined (my $line = <$file>)){
+			if($line =~ m/^Long:.*/){
+				my @helpline = split /[:]/,$line,2;
+				print $helpline[1];
+			}
 		}
+		close $file;
 	}
-	close $file;
+	else {
+		say 'No help file found for the given command. Type "help" for a list of available commands.';
+	}
 }
 
 # This function will be launched everytime a command is invoked from the shell. It will
