@@ -54,7 +54,7 @@ sub print_help {
 # already done with generic help, I think they will be almost everytime used together.
 sub print_command_help {
 	my $helpfile = shift;
-	if (defined ($helpfile)){
+	if ( defined ($helpfile) && -e $helpfile){
 		open (my $file, $helpfile);
 		while (defined (my $line = <$file>)){
 			if($line =~ m/^Long:.*/){
@@ -65,7 +65,7 @@ sub print_command_help {
 		close $file;
 	}
 	else {
-		say 'No help file found for the given command. Type "help" for a list of available commands.';
+		say "No help file found for the given command.\nType \"help\" for a list of available commands.";
 	}
 }
 
