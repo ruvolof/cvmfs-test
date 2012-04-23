@@ -25,6 +25,10 @@ use vars qw/ @EXPORT /;
 
 sub launch {
 	my $test = shift;
+	
+	my @options = @_;
+	my $options = join(' ', @options);
+	
 	my $mainfile;
 	my $select = sub {
 		if($File::Find::name =~ m/.*\/$test\/main\.pl$/){
@@ -33,7 +37,7 @@ sub launch {
 	};
 	finddepth( { wanted => $select }, $Bin);
 	if(defined ($mainfile)){
-		system('perl ' . $mainfile);
+		system('perl ' . $mainfile . ' ' . $options);
 	}
 	else {
 		say 'Command not found. Type "help" for a list of available command.';

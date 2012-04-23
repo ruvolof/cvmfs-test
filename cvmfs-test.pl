@@ -29,7 +29,7 @@ while(1){
 	# Everything else will be considered option and will be stored in @options.
 	my @options;
 	if(scalar (@command) > 1){
-		@options = @command[1, -1];
+		@options = splice (@command, 1);
 	}
 	
 	# Switch on the value of $command[0].
@@ -43,6 +43,6 @@ while(1){
 			}
 		}
 		when ($_ eq 'exit' or $_ eq 'q') { exit 0 }
-		default { launch($command[0]) }
+		default { launch($command[0], @options) }
 	}		
 }
