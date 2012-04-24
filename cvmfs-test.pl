@@ -43,6 +43,7 @@ while(1){
 			}
 		}
 		when ($_ eq 'exit' or $_ eq 'q') { exit 0 }
+		when ($_ eq 'kill' ) { kill_process($options[0]) }
 		default { launch($command[0], @options) }
 	}		
 }

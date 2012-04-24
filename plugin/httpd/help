@@ -1,0 +1,15 @@
+Short:  httpd		Runs a basic webserver.
+
+Long:
+Long:httpd
+Long:	Runs a basic webserver. 
+Long:	Usage: httpd <options>
+Long:
+Long:	List of available options:
+Long:	  --port PORT	Listen on port PORT. 8080 by default.
+Long:	  --root DIR	Serve directory DIR. "/tmp" by default.
+Long:	  --fg		Launch in foreground. Background by default.
+Long:
+Long:	Error conditions options:
+Long:	  --404		Will always serve 404 error pages.
+Long:

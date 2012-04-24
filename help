@@ -9,6 +9,7 @@ Short:
 Short:Shell commands:
 Short:  help (h)	Print this help and exit.
 Short:  exit (q)	Exit from the shell.
+Short:  kill PID	Send TERM signal to PID.
 Short:
 Short:Plugin related commands:
 

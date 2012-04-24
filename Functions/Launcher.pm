@@ -17,7 +17,7 @@ use FindBin qw($Bin);
 
 use base 'Exporter';
 use vars qw/ @EXPORT /;
-@EXPORT= qw{ launch };
+@EXPORT= qw{ launch kill_process };
 
 # This function will be launched everytime a command is invoked from the shell. It will
 # search recursively from $Bin for a main.pl file inside a folder named as the requested command.
@@ -41,5 +41,22 @@ sub launch {
 	}
 	else {
 		say 'Command not found. Type "help" for a list of available command.';
+	}
+}
+
+# This function will be used to kill the processes.
+sub kill_process {
+	my $pid = shift;
+	my $success;
+	my $cnt = kill 0, $pid;
+	if ($cnt > 0) {
+		say "Sending TERM signal to process $pid";
+		$success = kill 15, $pid;
+	}
+	if ($success > 0) {
+		say "Process terminated";
+	}
+	else {
+		say 'Impossible to terminate the process';
 	}
 }
