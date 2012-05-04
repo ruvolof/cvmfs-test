@@ -6,7 +6,6 @@ package Functions::Launcher;
 
 use strict;
 use warnings;
-use feature 'say';
 use File::Find;
 
 # The next line is here to help me find the directory of the script
@@ -14,7 +13,6 @@ use File::Find;
 use FindBin qw($Bin);
 
 # This code is needed to export the functions in the main package
-
 use base 'Exporter';
 use vars qw/ @EXPORT /;
 @EXPORT= qw{ launch kill_process };
@@ -40,23 +38,30 @@ sub launch {
 		system('perl ' . $mainfile . ' ' . $options);
 	}
 	else {
-		say 'Command not found. Type "help" for a list of available command.';
+		print 'Command not found. Type "help" for a list of available command.\n';
 	}
 }
 
 # This function will be used to kill the processes.
 sub kill_process {
-	my $pid = shift;
+	# Retrieving arguments: a list of PID that must be killed.
+	my @pids = shift;
+	
 	my $success;
-	my $cnt = kill 0, $pid;
-	if ($cnt > 0) {
-		say "Sending TERM signal to process $pid";
-		$success = kill 15, $pid;
-	}
-	if ($success > 0) {
-		say "Process terminated";
-	}
-	else {
-		say 'Impossible to terminate the process';
+	my $cnt;
+	
+	# Start killing all process
+	foreach(@pids){
+		my $cnt = kill 0, $pid;
+		if ($cnt > 0) {
+			print "Sending TERM signal to process $pid\n";
+			$success = kill 15, $pid;
+		}
+		if ($success > 0) {
+			print "Process terminated\n";
+		}
+		else {
+			print 'Impossible to terminate the process\n';
+		}
 	}
 }
