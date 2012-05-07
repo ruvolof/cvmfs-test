@@ -28,7 +28,7 @@
     }
 
     my $ns = new Net::DNS::Nameserver(
-        LocalPort    => 5353,
+        LocalPort    => 5300,
         ReplyHandler => \&reply_handler,
         Verbose      => 1
         ) || die "couldn't create nameserver object\n";

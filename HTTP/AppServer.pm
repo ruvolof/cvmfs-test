@@ -9,7 +9,7 @@ package HTTP::AppServer;
 #   GET  /delete/<uuid> = loescht JSON-Dokument
 #   GET  /file/<filename> = gibt Datei innerhalb Document-Root zurueck
 
-use 5.010000;
+#use 5.010000;
 use strict;
 use warnings;
 use Data::Dumper;

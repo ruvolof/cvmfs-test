@@ -3,7 +3,7 @@ package HTTP::AppServer::Base;
 # to disptach URLs to Perl function references that contain the logic.
 # 2010 by Tom Kirchner
 
-use 5.010000;
+#use 5.010000;
 use strict;
 use warnings;
 use Data::Dumper;

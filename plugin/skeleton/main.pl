@@ -3,7 +3,14 @@
 
 use strict;
 use warnings;
-use feature 'say';
+
+# You'll probably want your script to send back some feedback to the user,
+# in this case you has to redirect your output to the FIFO used by the daemon.
+# Here, I'm going to redirect the whole output by setting STDOUT to the FIFO.
+use IO::Handle;
+my $OUTPUT = '/tmp/cvmfs-testd-output.fifo';
+open (my $myoutput, '>', $OUTPUT);
+STDOUT->fdopen( \*$myoutput, 'w');
 
 my $message = << "EOF"
 Don't expect anything by this command.
@@ -13,3 +20,6 @@ EOF
 ;
 
 print $message;
+
+# Always close your file handler before exiting your script
+close $myoutput;

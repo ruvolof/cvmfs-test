@@ -2,7 +2,7 @@ package HTTP::AppServer::Plugin;
 # Abstract class for all HTTP::AppServer plugins.
 # 2010 by Tom Kirchner
 
-use 5.010000;
+#use 5.010000;
 use strict;
 use warnings;
 

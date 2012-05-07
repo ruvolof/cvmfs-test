@@ -7,32 +7,36 @@ package Functions::Help;
 use strict;
 use warnings;
 use File::Find;
+use Functions::FIFOHandle qw{ open_rfifo open_wfifo close_fifo print_to_fifo };
 
 # The next line is here to help me find the directory of the script
 # if you have a better method, let me know.
 use FindBin qw($Bin);
 
-# This code is needed to export the functions in the main package
+# Next lines are needed to export subroutines to the main package
 use base 'Exporter';
-use vars qw/ @EXPORT /;
-@EXPORT= qw{ help get_help_file print_command_help print_help };
+use vars qw/ @EXPORT_OK /;
+@EXPORT_OK = qw(help print_command_help print_help get_help_file);
+
+# These are the paths where FIFOs are stored
+my $INPUT = '/tmp/cvmfs-testd-input.fifo';
+my $OUTPUT = '/tmp/cvmfs-testd-output.fifo';
 
 # This functions will be launched everytime the user type the help command.
 # The goal of this function is only to select wich other help functions is needed.
 sub help {
 	# Retrieving arguments
 	my $command = shift;
-	my $myoutput = shift;
 	my @options = @_;
 	
 	if( @options and scalar(@options) > 1){
-		print $myoutput "Please, one command at time.\n";
+		print_to_fifo ($OUTPUT, "Please, one command at time.\n");
 	}
 	elsif( @options and scalar(@options) == 1 and $options[0]){
-		print_command_help($options[0], $myoutput);
+		print_command_help($options[0]);
 	}
 	else{
-		print_help($myoutput);
+		print_help();
 	}
 }
 
@@ -59,10 +63,7 @@ sub get_help_file {
 
 # This function will retrieve all the help file inside $Bin and for each one of them
 # it prints the Short description. It needs no argument.
-sub print_help {
-	# Retrieving argument: the file handler
-	my $myoutput = shift;
-	
+sub print_help {	
 	# Retrieving all help files
 	my @helpfiles;
 	my $select = sub {
@@ -72,29 +73,37 @@ sub print_help {
 	};
 	find( { wanted => $select }, $Bin);
 	
+	# Here it will open the FIFO for output
+	my $outputfh = open_wfifo($OUTPUT);
+	
 	# Here it will open all the files and will print their contents.
 	foreach (@helpfiles) {
 		open (my $file, $_);
 		while (defined (my $line = <$file>)){
 			if($line =~ m/^Short:.*/){
 				my @helpline = split /[:]/,$line,2;
-				print $myoutput $helpline[1];
+				print $outputfh $helpline[1];
 			}
 		}
 		close $file;
 	}
+	
+	# Here it closes the output FIFO
+	close_fifo($outputfh);
 }
 
 # This function will print the Long help of a specific help file, probably found thanks
 # to the get_command_help() function. Probably it can be integrated in that function, as
 # already done with generic help, I think they will be almost everytime used together.
 sub print_command_help {
-	# Retrieving argument: the command asked and the file handler
+	# Retrieving argument: the command
 	my $command = shift;
-	my $myoutput = shift;
 	
 	# Retrieving the right help file
 	my $helpfile = get_help_file($command);
+	
+	# Here it opens the output FIFO
+	my $outputfh = open_wfifo($OUTPUT);
 	
 	# If the helpfile exists, now it's time to print is content.
 	if ( defined ($helpfile) && -e $helpfile){
@@ -102,14 +111,17 @@ sub print_command_help {
 		while (defined (my $line = <$file>)){
 			if($line =~ m/^Long:.*/){
 				my @helpline = split /[:]/,$line,2;
-				print $myoutput $helpline[1];
+				print $outputfh $helpline[1];
 			}
 		}
 		close $file;
 	}
 	else {
-		print $myoutput "No help file found for the command $command.\nType \"help\" for a list of available commands.\n";
+		print $outputfh "No help file found for the command $command.\nType \"help\" for a list of available commands.\n";
 	}
+	
+	# Here it closes the output FIFO
+	close_fifo($outputfh);
 }
 
 1;

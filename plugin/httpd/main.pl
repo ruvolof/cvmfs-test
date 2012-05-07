@@ -1,12 +1,15 @@
 use strict;
 use warnings;
-use feature 'say';
 use FindBin qw($Bin);
 use lib "$Bin";
 use HTTP::AppServer;
 use Getopt::Long;
 
-
+# Redirecting STDOUT to the FIFO used by the daemon
+use IO::Handle;
+my $OUTPUT = '/tmp/cvmfs-testd-output.fifo';
+open (my $myoutput, '>', $OUTPUT);
+STDOUT->fdopen( \*$myoutput, 'w');
 
 my $not_found;
 my $port = 8080;
@@ -39,3 +42,6 @@ $server->plugin("$retriever", DocRoot => "$docroot");
         
 # start server
 $server->start;
+
+# Closing the file handler
+close $myoutput;
