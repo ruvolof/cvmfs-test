@@ -2,7 +2,7 @@ use strict;
 use warnings;
 use POSIX qw(mkfifo);
 use Proc::Spawn;
-use Functions::Shell qw(check_daemon);
+use Functions::Shell qw(check_daemon check_command);
 
 # The next line is here to help me find the directory of the script
 # if you have a better method, let me know.
@@ -25,10 +25,15 @@ my ($daempid, $daemin, $daemout, $daemerr);
 unless (check_daemon()) {
 	print 'The daemon is not running. Would you like to run it now? [Y/n]';
 	my $answer = <STDIN>;
-	if($answer eq "\n" or $answer eq "Y\n"){
+	if($answer eq "\n" or $answer eq "Y\n" or $answer eq 'y'){
 		print 'Starting daemon...';
 		($daempid, $daemin, $daemout, $daemerr) = spawn('perl ' . $Bin . '/cvmfs-testd.pl');
-		print "Done.\n";
+		if(check_daemon()) {
+			print "Done.\n";
+		}
+		else {
+			print "Impossible to start the daemon.\n";
+		}
 	}
 }
 
@@ -45,7 +50,9 @@ while(1){
 		chomp($line);
 		
 		# Checking if the command refer to the shell and not to the daemon
-		if($line eq 'exit' or $line eq 'quit' or $line eq 'q') { exit 0 }
+		my $continue = check_command($line);
+		# If the command was already executed, passing to the next while cicle
+		next if $continue;
 		
 		# Opening the $INPUT FIFO to send commands to the daemon
 		open(my $myinput, '>', $INPUT) || die "Couldn't open $INPUT";	
@@ -67,6 +74,12 @@ while(1){
 	
 	# This is the second shell, use when the daemon is closed
 	while(!check_daemon()){
-		exit 0;
+		print '(Daemon not running) -> ';
+		# Reading an input line.
+		my $line = <STDIN>;
+		chomp($line);
+		
+		# Launching the command
+		check_command($line);
 	}
 }

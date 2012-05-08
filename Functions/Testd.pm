@@ -43,3 +43,5 @@ sub stop_daemon {
 	print "Daemon stopped.\n";
 	exit 0;
 }
+
+1;

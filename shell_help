@@ -1,0 +1,14 @@
+####################
+# This help file contains all help entry of commands bundled in the shell.
+# It's read when help command is invoked but the daemon is not running.
+####################
+
+Short:Usage: command <options>
+Short:
+Short:Shell commands:
+Short:  help (h)	Print this help and exit.
+Short:  exit (q)	Exit from the shell.
+Short:  start		Start the daemon.
+Short:  status	Check whether the daemon is running.
+Short:
+

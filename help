@@ -8,8 +8,11 @@ Short:Usage: command <options>
 Short:
 Short:Shell commands:
 Short:  help (h)	Print this help and exit.
-Short:  stop		Stop the daemon.
+Short:  exit (q)	Exit from the shell.
 Short:  kill PID	Send TERM signal to PID.
+Short:  start		Start the daemon.
+Short:  status	Check whether the daemon is running.
+Short:  stop		Stop the daemon.
 Short:
 Short:Plugin related commands:
 

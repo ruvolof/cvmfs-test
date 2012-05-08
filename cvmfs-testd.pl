@@ -2,7 +2,7 @@ use strict;
 use warnings;
 use POSIX qw(mkfifo);
 use IO::Handle;
-use Functions::Help qw(help get_help_file print_command_help print_help);
+use Functions::Help qw(help);
 use Functions::Launcher qw(launch kill_process);
 use Functions::FIFOHandle qw(open_rfifo open_wfifo close_fifo print_to_fifo);
 use Functions::Testd qw(stop_daemon);
@@ -51,7 +51,7 @@ while(1) {
 			# Here is the HELP case
 			if($_ eq 'help' or $_ eq 'h') { help($command, @options) }
 			
-			# Here is the EXIT case
+			# Here is the STOP case
 			elsif($_ eq 'stop') { stop_daemon() }
 			
 			# Here is the KILL case

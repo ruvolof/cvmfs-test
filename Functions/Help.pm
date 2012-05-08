@@ -7,7 +7,7 @@ package Functions::Help;
 use strict;
 use warnings;
 use File::Find;
-use Functions::FIFOHandle qw{ open_rfifo open_wfifo close_fifo print_to_fifo };
+use Functions::Shell qw(check_daemon);
 
 # The next line is here to help me find the directory of the script
 # if you have a better method, let me know.
@@ -16,7 +16,7 @@ use FindBin qw($Bin);
 # Next lines are needed to export subroutines to the main package
 use base 'Exporter';
 use vars qw/ @EXPORT_OK /;
-@EXPORT_OK = qw(help print_command_help print_help get_help_file);
+@EXPORT_OK = qw(help);
 
 # These are the paths where FIFOs are stored
 my $INPUT = '/tmp/cvmfs-testd-input.fifo';
@@ -26,17 +26,27 @@ my $OUTPUT = '/tmp/cvmfs-testd-output.fifo';
 # The goal of this function is only to select wich other help functions is needed.
 sub help {
 	# Retrieving arguments
-	my $command = shift;
-	my @options = @_;
+	my $line = shift;
 	
-	if( @options and scalar(@options) > 1){
-		print_to_fifo ($OUTPUT, "Please, one command at time.\n");
+	# Splitting $line in an array depending on blank...
+	my @words = split /[[:blank:]]/, $line;
+	# Everything else, if exist, are options.
+	my @options = splice(@words, 1);
+	
+	# Changing operations to do depending on the daemon status
+	if(Functions::Shell::check_daemon()) {
+		if( @options and scalar(@options) > 1){
+			print "Please, one command at time.\n";
+		}
+		elsif( @options and scalar(@options) == 1 and $options[0]){
+			print_command_help($options[0]);
+		}
+		else{
+			print_help();
+		}
 	}
-	elsif( @options and scalar(@options) == 1 and $options[0]){
-		print_command_help($options[0]);
-	}
-	else{
-		print_help();
+	else {
+		print_shell_help();
 	}
 }
 
@@ -73,23 +83,18 @@ sub print_help {
 	};
 	find( { wanted => $select }, $Bin);
 	
-	# Here it will open the FIFO for output
-	my $outputfh = open_wfifo($OUTPUT);
-	
-	# Here it will open all the files and will print their contents.
+	# Here it will open all the files and will print their contents. Only lines
+	# starting with 'Short:'.
 	foreach (@helpfiles) {
 		open (my $file, $_);
 		while (defined (my $line = <$file>)){
 			if($line =~ m/^Short:.*/){
 				my @helpline = split /[:]/,$line,2;
-				print $outputfh $helpline[1];
+				print $helpline[1];
 			}
 		}
 		close $file;
 	}
-	
-	# Here it closes the output FIFO
-	close_fifo($outputfh);
 }
 
 # This function will print the Long help of a specific help file, probably found thanks
@@ -102,26 +107,47 @@ sub print_command_help {
 	# Retrieving the right help file
 	my $helpfile = get_help_file($command);
 	
-	# Here it opens the output FIFO
-	my $outputfh = open_wfifo($OUTPUT);
-	
-	# If the helpfile exists, now it's time to print is content.
+	# If the helpfile exists, now it's time to print it's content.
 	if ( defined ($helpfile) && -e $helpfile){
 		open (my $file, $helpfile);
 		while (defined (my $line = <$file>)){
 			if($line =~ m/^Long:.*/){
 				my @helpline = split /[:]/,$line,2;
-				print $outputfh $helpline[1];
+				print $helpline[1];
 			}
 		}
 		close $file;
 	}
 	else {
-		print $outputfh "No help file found for the command $command.\nType \"help\" for a list of available commands.\n";
+		print "No specific help file found for the command $command.\nType 'help' for a list of available commands.\n";
 	}
+}
+
+# This function will retrieve the help for the shell when the daemon is not running.
+sub print_shell_help {
+	# Searching the right help file
+	my $helpfile;
+	my $select = sub {
+		if ($File::Find::name =~ m/.*shell_help$/){	
+			$helpfile = $&;		
+		}
+	};
+	finddepth( { wanted => $select }, $Bin);
 	
-	# Here it closes the output FIFO
-	close_fifo($outputfh);
+	# Printing help information
+	if ( defined ($helpfile) && -e $helpfile){
+		open (my $file, $helpfile);
+		while (defined (my $line = <$file>)){
+			if($line =~ m/^Short:.*/){
+				my @helpline = split /[:]/,$line,2;
+				print $helpline[1];
+			}
+		}
+		close $file;
+	}
+	else {
+		print "No help file found for the shell.\n";
+	}
 }
 
 1;

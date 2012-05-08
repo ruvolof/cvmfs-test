@@ -49,6 +49,12 @@ sub launch {
 	# Executing the script, if found
 	if(defined ($mainfile)){
 		($pid, $infh, $outfh, $errfh) = spawn('perl ' . $mainfile . ' ' . $options);
+		my $fh = open_wfifo($OUTPUT);
+		while (defined(my $line = <$outfh>)){
+			print $fh $line;
+		}
+		close $outfh;
+		close_fifo($fh);
 	}
 	else {
 		print_to_fifo ($OUTPUT, "Command not found. Type 'help' for a list of available command.\n");
