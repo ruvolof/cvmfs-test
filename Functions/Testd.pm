@@ -21,7 +21,7 @@ my $OUTPUT = '/tmp/cvmfs-testd-output.fifo';
 # This function will remove the two FIFO, it must be launched as the last command.
 sub remove_fifo {
 	if (-e $INPUT){
-		print '\nDeleting input FIFO... ';
+		print "\nDeleting input FIFO... ";
 		unlink $INPUT;
 		print "Done.\n";
 	}
