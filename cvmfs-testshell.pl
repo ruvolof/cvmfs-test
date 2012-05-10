@@ -1,3 +1,5 @@
+# !/usr/bin/perl
+
 use strict;
 use warnings;
 use POSIX qw(mkfifo);
@@ -25,7 +27,7 @@ my ($daempid, $daemin, $daemout, $daemerr);
 unless (check_daemon()) {
 	print 'The daemon is not running. Would you like to run it now? [Y/n]';
 	my $answer = <STDIN>;
-	if($answer eq "\n" or $answer eq "Y\n" or $answer eq 'y'){
+	if($answer eq "\n" or $answer eq "Y\n" or $answer eq 'y\n'){
 		print 'Starting daemon...';
 		($daempid, $daemin, $daemout, $daemerr) = spawn('perl ' . $Bin . '/cvmfs-testd.pl');
 		if(check_daemon()) {

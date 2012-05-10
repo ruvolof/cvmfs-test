@@ -36,6 +36,3 @@ $server->plugin("$retriever", DocRoot => "$docroot");
         
 # start server
 $server->start;
-
-# Closing the file handler
-#close $myoutput;
