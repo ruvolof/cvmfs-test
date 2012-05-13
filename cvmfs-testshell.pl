@@ -1,10 +1,10 @@
-# !/usr/bin/perl
+#!/usr/bin/perl
 
 use strict;
 use warnings;
 use POSIX qw(mkfifo);
 use Proc::Spawn;
-use Functions::Shell qw(check_daemon check_command);
+use Functions::Shell qw(check_daemon check_command start_daemon);
 
 # The next line is here to help me find the directory of the script
 # if you have a better method, let me know.
@@ -27,15 +27,8 @@ my ($daempid, $daemin, $daemout, $daemerr);
 unless (check_daemon()) {
 	print 'The daemon is not running. Would you like to run it now? [Y/n]';
 	my $answer = <STDIN>;
-	if($answer eq "\n" or $answer eq "Y\n" or $answer eq 'y\n'){
-		print 'Starting daemon...';
-		($daempid, $daemin, $daemout, $daemerr) = spawn('perl ' . $Bin . '/cvmfs-testd.pl');
-		if(check_daemon()) {
-			print "Done.\n";
-		}
-		else {
-			print "Impossible to start the daemon.\n";
-		}
+	if($answer eq "\n" or $answer eq "Y\n" or $answer eq "y\n"){
+		start_daemon();
 	}
 }
 
