@@ -53,17 +53,14 @@ while(1){
 		print $myinput $line;
 		# Closing the file
 		close_fifo($myinput);
-		print "Closed INPUT\n";
 		
 		# Opening the $OUTPUT FIFO to get the answer from the daemon
 		my $myoutput = open_rfifo($OUTPUT);
 		
 		# Waiting for the answer and printing it
-		print "Aperto FIFO.\n";
 		while( defined(my $outputline = <$myoutput>)){
 			print $outputline;
 		}
-		print "Chiuso FIFO\n";
 		
 		close_fifo($myoutput);
 	}

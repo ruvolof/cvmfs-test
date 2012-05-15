@@ -46,7 +46,15 @@ sub help {
 		}
 	}
 	else {
-		print_shell_help();
+		if( @options and scalar(@options) > 1){
+			print "Please, one command at time.\n";
+		}
+		elsif( @options and scalar(@options) == 1 and $options[0]){
+			print_shell_help($options[0]);
+		}
+		else {
+			print_shell_help();
+		}
 	}
 }
 
@@ -111,7 +119,7 @@ sub print_command_help {
 	if ( defined ($helpfile) && -e $helpfile){
 		open (my $file, $helpfile);
 		while (defined (my $line = <$file>)){
-			if($line =~ m/^Long:.*/){
+			if($line =~ m/^$command:.*/){
 				my @helpline = split /[:]/,$line,2;
 				print $helpline[1];
 			}
@@ -125,6 +133,9 @@ sub print_command_help {
 
 # This function will retrieve the help for the shell when the daemon is not running.
 sub print_shell_help {
+	# Retrieving arguments: the command. The function can be used without arguments.
+	my $command = shift;
+	
 	# Searching the right help file
 	my $helpfile;
 	my $select = sub {
@@ -138,9 +149,17 @@ sub print_shell_help {
 	if ( defined ($helpfile) && -e $helpfile){
 		open (my $file, $helpfile);
 		while (defined (my $line = <$file>)){
-			if($line =~ m/^Short:.*/){
-				my @helpline = split /[:]/,$line,2;
-				print $helpline[1];
+			if (!defined ($command)) {
+				if($line =~ m/^Short:.*/){
+					my @helpline = split /[:]/,$line,2;
+					print $helpline[1];
+				}
+			}
+			else  {
+				if($line =~ m/^$command:.*/){
+					my @helpline = split /[:]/,$line,2;
+					print $helpline[1];
+				}
 			}
 		}
 		close $file;

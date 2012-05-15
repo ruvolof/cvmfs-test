@@ -8,7 +8,21 @@ Short:
 Short:Shell commands:
 Short:  help (h)	Print this help and exit.
 Short:  exit (q)	Exit from the shell.
+Short:  setup		Setup the environment for the daemon.
 Short:  start		Start the daemon.
 Short:  status	Check whether the daemon is running.
 Short:
 
+setup:
+setup:setup
+setup:	Setup the environment for the daemon.
+setup:	Usage: setup
+setup:
+setup:	This command will do:
+setup:	  1) Compile the C wrapper to run the daemon with setuid.
+setup:	  2) Create a new user called 'cvmfs-test'.
+setup:	  3) Chown the wrapper to the new user.
+setup:	  4) Set the setuid bit on the wrapper.
+setup:
+setup:	For 2, 3 and 4 you will need to be in the sudoers file.
+setup:

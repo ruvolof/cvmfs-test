@@ -46,7 +46,7 @@ sub setup {
 		}
 	}
 	else {
-		print "The daemon is running. Can't run setup while the daemon is running. Stop it and retry.\n";
+		print "The daemon is running. Can't run setup while the daemon is running.\nStop it and retry.\n";
 	}
 }
 

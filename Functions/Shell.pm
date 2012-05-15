@@ -8,7 +8,7 @@ package Functions::Shell;
 use strict;
 use warnings;
 use Functions::Help qw(help);
-use Proc::Spawn;
+use Proc::Daemon;
 use Fcntl ':mode';
 use Functions::Setup qw(setup);
 
@@ -105,7 +105,11 @@ sub start_daemon {
 		if(check_permission()){
 			my ($daempid, $daemin, $daemout, $daemerr);
 			print 'Starting daemon...';
-			($daempid, $daemin, $daemout, $daemerr) = spawn($Bin . '/cvmfs-testdwrapper ' . $Bin . '/cvmfs-testd.pl');
+			my $daemonpid = Proc::Daemon::Init( { 
+													work_dir => $Bin,
+													pid_file => '/tmp/daemonpid',
+													exec_command => "$Bin/cvmfs-testdwrapper $Bin/cvmfs-testd.pl",
+												} );
 			print "Done.\n";
 		}
 		else {

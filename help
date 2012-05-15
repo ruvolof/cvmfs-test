@@ -10,6 +10,7 @@ Short:Shell commands:
 Short:  help (h)	Print this help and exit.
 Short:  exit (q)	Exit from the shell.
 Short:  kill PID	Send TERM signal to PID.
+Short:  setup		Setup the environment for the daemon.
 Short:  start		Start the daemon.
 Short:  status	Check whether the daemon is running.
 Short:  stop		Stop the daemon.
