@@ -18,13 +18,6 @@ sub open_rfifo {
 	# Retrieving argument: file path
 	my $fifo = shift;
 	
-	# Checking whether the FIFO is already opened or his position occupied
-	unless ( -p $fifo ) {
-		unlink $fifo;
-		mkfifo($fifo, 0666)
-		|| die "Couldn't create $fifo: $!\n";
-	}
-	
 	# Opening the FIFO
 	open (my $fh, '<', $fifo) || die "Couldn't open $fifo: $!\n";
 	
@@ -35,13 +28,6 @@ sub open_rfifo {
 sub open_wfifo {
 	# Retrieving argument: file path
 	my $fifo = shift;
-	
-	# Checking whether the FIFO is already opened or his position occupied
-	unless ( -p $fifo ) {
-		unlink $fifo;
-		mkfifo($fifo, 0666)
-		|| die "Couldn't create $fifo: $!\n";
-	}
 	
 	# Opening the FIFO
 	open (my $fh, '>', $fifo) || die "Couldn't open $fifo: $!\n";

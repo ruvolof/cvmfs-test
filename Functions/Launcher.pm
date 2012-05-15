@@ -49,6 +49,7 @@ sub launch {
 	# Executing the script, if found
 	if(defined ($mainfile)){
 		($pid, $infh, $outfh, $errfh) = spawn('perl ' . $mainfile . ' ' . $options);
+		print "Spawned\n";
 		my $fh = open_wfifo($OUTPUT);
 		while (defined(my $line = <$outfh>)){
 			print $fh $line;

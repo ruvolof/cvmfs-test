@@ -5,6 +5,7 @@ use warnings;
 use POSIX qw(mkfifo);
 use Proc::Spawn;
 use Functions::Shell qw(check_daemon check_command start_daemon);
+use Functions::FIFOHandle qw(open_rfifo open_wfifo close_fifo print_to_fifo);
 
 # The next line is here to help me find the directory of the script
 # if you have a better method, let me know.
@@ -19,9 +20,6 @@ print '#'x80 . "\n";
 print "Welcome in the interactive shell of the CernVM-FS testing system.\n";
 print "Type 'help' for a list of available commands.\n";
 print '#'x80 . "\n";
-
-# Variables to store daemon information
-my ($daempid, $daemin, $daemout, $daemerr);
 
 # If the daemon is not running, the shell will ask the use if run it
 unless (check_daemon()) {
@@ -50,21 +48,24 @@ while(1){
 		next if $continue;
 		
 		# Opening the $INPUT FIFO to send commands to the daemon
-		open(my $myinput, '>', $INPUT) || die "Couldn't open $INPUT";	
+		my $myinput = open_wfifo($INPUT);	
 		# Sending the command
 		print $myinput $line;
 		# Closing the file
-		close $myinput;
+		close_fifo($myinput);
+		print "Closed INPUT\n";
 		
 		# Opening the $OUTPUT FIFO to get the answer from the daemon
-		open(my $myoutput, '<', $OUTPUT) || die "Couldn't open $OUTPUT";
+		my $myoutput = open_rfifo($OUTPUT);
 		
 		# Waiting for the answer and printing it
+		print "Aperto FIFO.\n";
 		while( defined(my $outputline = <$myoutput>)){
 			print $outputline;
 		}
+		print "Chiuso FIFO\n";
 		
-		close $myoutput;
+		close_fifo($myoutput);
 	}
 	
 	# This is the second shell, use when the daemon is closed

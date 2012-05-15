@@ -14,8 +14,6 @@ my $INPUT = '/tmp/cvmfs-testd-input.fifo';
 my $OUTPUT = '/tmp/cvmfs-testd-output.fifo';
 
 # Here are created the two FIFO that will be used for INPUT and OUTPUT
-	# I'm putting it inside a while so it will recreate them if something
-	# accidentally erases them.
 unless ( -p $INPUT ) {
 	unlink $INPUT;
 	mkfifo($INPUT, 0666)
@@ -27,11 +25,14 @@ unless ( -p $OUTPUT ) {
 	|| die "Couldn't create $OUTPUT";
 }
 
-while(1) {	
+# Fixing permission on the FIFO, it seems umask prevent them to be set correctly
+system("chmod 666 $INPUT");
+system("chmod 666 $OUTPUT");
+
+while(1) {
 	# Here it opens the INPUT FIFO and set it as STDIN
 	my $inputfh = open_rfifo($INPUT);
 	STDIN->fdopen( \*$inputfh, 'r') || die "Couldn't set STDIN to $INPUT";
-	
 	# Here it starts waiting for an input
 	while( defined(my $line = <STDIN>)){
 		# Here it starts processing the command
@@ -51,7 +52,7 @@ while(1) {
 		for($command){
 			
 			# Here is the HELP case
-			if($_ eq 'help' or $_ eq 'h') { help($command, @options) }
+			if($_ eq 'help' or $_ eq 'h') { help($line) }
 			
 			# Here is the STOP case
 			elsif($_ eq 'stop') { stop_daemon() }
