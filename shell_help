@@ -8,6 +8,7 @@ Short:
 Short:Shell commands:
 Short:  help (h)	Print this help and exit.
 Short:  exit (q)	Exit from the shell.
+Short:  fixperm		Fix permission for files and directories.
 Short:  setup		Setup the environment for the daemon.
 Short:  start		Start the daemon.
 Short:  status	Check whether the daemon is running.
@@ -26,3 +27,15 @@ setup:	  4) Set the setuid bit on the wrapper.
 setup:
 setup:	For 2, 3 and 4 you will need to be in the sudoers file.
 setup:
+
+fixperm:
+fixperm:fixperm
+fixperm:	Fix permission for files and directories.
+fixperm:	Usage: fixperm
+fixperm:	
+fixperm:	This command will execute the next commands:
+fixperm:	  find -type f -name "*.pm" -exec chmod 644 {} +
+fixperm:	  find -type f -name "*.pl" -exec chmod 755 {} +
+fixperm:	  find -type d -exec chmod 755 {} +
+fixperm:	  find -type f -name "*help" -exec chmod 644 {} +
+fixperm:

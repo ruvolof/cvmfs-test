@@ -1,15 +1,18 @@
 #!/usr/bin/perl
 
+# The next line is here to help me find the directory of the script
+# if you have a better method, let me know.
+use FindBin qw($Bin);
+
+# Next line adds the script directory to the lib path
+use lib $Bin;
+
 use strict;
 use warnings;
 use POSIX qw(mkfifo);
 use Proc::Spawn;
 use Functions::Shell qw(check_daemon check_command start_daemon);
 use Functions::FIFOHandle qw(open_rfifo open_wfifo close_fifo print_to_fifo);
-
-# The next line is here to help me find the directory of the script
-# if you have a better method, let me know.
-use FindBin qw($Bin);
 
 # These are the FIFOs used to communicate with the daemon
 my $INPUT = '/tmp/cvmfs-testd-input.fifo';

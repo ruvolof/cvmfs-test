@@ -17,7 +17,7 @@ use FindBin qw($Bin);
 # Next lines are needed to export subroutines to the main package
 use base 'Exporter';
 use vars qw/ @EXPORT_OK /;
-@EXPORT_OK = qw(setup);
+@EXPORT_OK = qw(setup fixperm);
 
 sub setup {
 	if (!Functions::Shell::check_daemon()){
@@ -40,7 +40,18 @@ sub setup {
 					$wrapper_chown = chown_wrapper();
 					
 					# If the wrapper is owned by the user cvmfs-test, setuid on the wrapper
-					$wrapper_setuid = setuid_wrapper();
+					if ($wrapper_chown) {
+						$wrapper_setuid = setuid_wrapper();
+						
+						# If all operations ended correctly
+						if ($wrapper_setuid) {
+							print "\n";
+							print '_' x 80 . "\n";
+							print "Setup complete. Run 'fixperm' to be sure all permission are set correctly.\n";
+							print "You can type 'help fixperm' to show what this command does.\n";
+							print '_' x 80 . "\n";
+						}
+					}
 				}
 			}
 		}
@@ -78,7 +89,7 @@ sub create_user {
 	if (!$user) {
 		if (-e '/usr/sbin/useradd') {
 			print "Adding user 'cvmfs-test'.\n";
-			my $added = system('sudo /usr/sbin/useradd --system --user-group --key UMASK=0000 cvmfs-test');
+			my $added = system('sudo /usr/sbin/useradd -r --key UMASK=0000 cvmfs-test');
 			if ($added == -1) {
 				print "FAILED: $!\n";
 				return 0;
@@ -106,7 +117,7 @@ sub chown_wrapper {
 	my $owner = (getpwuid($uid))[0];
 	if($owner ne 'cvmfs-test') {
 		print "Changing the owner of the wrapper... \n";
-		my $chowned = system("sudo chown cvmfs-test:cvmfs-test $Bin/cvmfs-testdwrapper");
+		my $chowned = system("sudo chown root:root $Bin/cvmfs-testdwrapper");
 		if ($chowned == -1){
 			print "FAILED: $!\n";
 			return 0;
@@ -134,7 +145,7 @@ sub setuid_wrapper {
 	}
 	else {
 		print "Adding setuid byte... \n";
-		my $setuid = system("sudo chmod +s $Bin/cvmfs-testdwrapper");
+		my $setuid = system("sudo chmod u+s $Bin/cvmfs-testdwrapper");
 		if ($setuid == -1){
 			print "FAILED: $!\n";
 			return 0;
@@ -144,6 +155,25 @@ sub setuid_wrapper {
 			return 1;
 		}
 	}
+}
+
+# This function will set all permission for files and directories
+sub fixperm {
+	print 'Setting permission for modules to 644... ';
+	system("find -type f -name \"*.pm\" -exec chmod 644 {} +");
+	print "Done.\n";
+	
+	print 'Setting permission for executables to 755... ';
+	system("find -type f -name \"*.pl\" -exec chmod 755 {} +");
+	print "Done.\n";
+	
+	print 'Setting permission for directories to 755... ';
+	system("find -type d -exec chmod 755 {} +");
+	print "Done.\n";
+	
+	print 'Setting permission for help files to 644... ';
+	system("find -type f -name \"*help\" -exec chmod 644 {} +");
+	print "Done.\n";
 }
 
 1;

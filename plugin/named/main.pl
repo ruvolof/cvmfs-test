@@ -59,12 +59,18 @@ my $ns = new Net::DNS::Nameserver(
     ) || die "couldn't create nameserver object\n";
 
 my $pid = fork;
+
+# Command for the forked process
 if (defined ($pid) and $pid == 0){
 	open (my $outfh, '>', '/tmp/cvmfs-named.out') || die "Couldn't open /tmp/cvmfs-named.out: $!\n";
 	STDOUT->fdopen( \*$outfh, 'w' ) || die "Couldn't set STDOUT to /tmp/cvmfs-named.out: $!\n";
 	$ns->main_loop;
 }
 
-print "DNS started on port $port with PID $pid.\n";
-print "You can read its output in '/tmp/cvmfs-named.out'.\n";
+# Command for the main script
+unless ($pid == 0){
+	print "DNS started on port $port with PID $pid.\n";
+	print "You can read its output in '/tmp/cvmfs-named.out'.\n";
+}
+	
 exit 0;

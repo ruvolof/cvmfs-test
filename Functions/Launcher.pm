@@ -44,7 +44,7 @@ sub launch {
 			$mainfile = $&;
 		}
 	};
-	finddepth( { wanted => $select }, $Bin);
+	finddepth( { wanted => $select }, '.');
 	
 	# Executing the script, if found
 	if(defined ($mainfile)){

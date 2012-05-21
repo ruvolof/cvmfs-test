@@ -8,7 +8,6 @@ httpd:
 httpd:	List of available options:
 httpd:	  --port PORT	Listen on port PORT. 8080 by default.
 httpd:	  --root DIR	Serve directory DIR. "/tmp" by default.
-httpd:	  --fg		Launch in foreground. Background by default.
 httpd:
 httpd:	Error conditions options:
 httpd:	  --404		Will always serve 404 error pages.

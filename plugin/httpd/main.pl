@@ -7,32 +7,43 @@ use Getopt::Long;
 
 my $not_found;
 my $port = 8080;
-my $background = 1;
-my $fg;
 my $docroot = '/tmp';
 my $retriever = 'FileRetriever';
 
 my $ret = GetOptions ( "404" => \$not_found,
 					   "port=i" => \$port,
-					   "fg" => \$fg,
 					   "root=s" => \$docroot );
-					   
-if (defined ($fg)){
-	$background = 0;
-}
 
 if (defined ($not_found)){
 	$retriever = 'Retriever404';
 }
 
-# create server instance at localhost:$port
-my $server = HTTP::AppServer->new( StartBackground => $background, ServerPort => $port );
+# Create server instance at localhost:$port
+my $server = HTTP::AppServer->new( StartBackground => 0, ServerPort => $port );
  
-# alias URL
+# Alias URL
 $server->handle('^\/$', '/index.html');
 
-# load plugin for simple file retrieving from a document root
+# Loading requested plugin
 $server->plugin("$retriever", DocRoot => "$docroot");
-        
-# start server
-$server->start;
+
+# Loading plugin for error handling
+$server->plugin('CustomError');
+
+my $pid = fork;
+
+# Command for the forked process
+if (defined ($pid) and $pid == 0){
+	open (my $outfh, '>', '/tmp/cvmfs-httpd.out') || die "Couldn't open /tmp/cvmfs-httpd.out: $!\n";
+	STDOUT->fdopen( \*$outfh, 'w' ) || die "Couldn't set STDOUT to /tmp/cvmfs-httpd.out: $!\n";
+	# Starting server in the forked process
+	$server->start;
+}
+
+# Command for the main script
+unless ($pid == 0) {
+	print "HTTPd started on port $port with PID $pid.\n";
+	print "You can read its output in '/tmp/cvmfs-httpd.out'.\n";
+}
+
+exit 0;

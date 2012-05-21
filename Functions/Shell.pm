@@ -10,7 +10,7 @@ use warnings;
 use Functions::Help qw(help);
 use Proc::Daemon;
 use Fcntl ':mode';
-use Functions::Setup qw(setup);
+use Functions::Setup qw(setup fixperm);
 
 # Next lines are needed to export subroutines to the main package
 use base 'Exporter';
@@ -44,6 +44,7 @@ sub check_command {
 		elsif ($_ eq 'start' ) { start_daemon(); $executed = 1 }
 		elsif ($_ =~ m/^help\s*.*/ or $_ =~ m/^h\s.*/) { help($command), $executed = 1 }
 		elsif ($_ eq 'setup') { setup(); $executed = 1 }
+		elsif ($_ eq 'fixperm') { fixperm(); $executed = 1 }
 	}
 	
 	# If the daemon is not running and no command was executed, print on screen a message
@@ -91,7 +92,7 @@ sub check_permission {
 	}
 	
 	# Return true only if all conditions are true
-	if ($user and $owner eq "cvmfs-test" and $suid){
+	if ($user and $owner eq "root" and $suid){
 		return 1;
 	}
 	else {
@@ -107,8 +108,10 @@ sub start_daemon {
 			print 'Starting daemon...';
 			my $daemonpid = Proc::Daemon::Init( { 
 													work_dir => $Bin,
-													pid_file => '/tmp/daemonpid',
-													exec_command => "$Bin/cvmfs-testdwrapper $Bin/cvmfs-testd.pl",
+													pid_file => '/tmp/daemon.pid',
+													child_STDOUT => '/tmp/daemon.output',
+													child_STDERR => '/tmp/daemon.error',
+													exec_command => "./cvmfs-testdwrapper ./cvmfs-testd.pl",
 												} );
 			print "Done.\n";
 		}
