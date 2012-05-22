@@ -17,7 +17,7 @@ use FindBin qw($Bin);
 # This code is needed to export the functions in the main package
 use base 'Exporter';
 use vars qw/ @EXPORT_OK /;
-@EXPORT_OK = qw{ launch kill_process };
+@EXPORT_OK = qw{ launch kill_process jobs };
 
 # These are the paths where FIFOs are stored
 my $INPUT = '/tmp/cvmfs-testd-input.fifo';
@@ -64,23 +64,43 @@ sub launch {
 # This function will be used to kill the processes.
 sub kill_process {
 	# Retrieving arguments: a list of PID that must be killed.
-	my @pids = shift;
+	my @pids = @_;
 	
 	my $success;
 	my $cnt;
 	
 	# Start killing all process
+	my $fh = open_wfifo($OUTPUT);
 	foreach(@pids){
-		$cnt = kill 0, $_;
-		if ($cnt > 0) {
-			print_to_fifo ($OUTPUT, "Sending TERM signal to process $_\n");
-			$success = kill 15, $_;
-		}
-		if ( defined($success) and $success > 0) {
-			print_to_fifo ($OUTPUT, "Process terminated\n");
+		my $process = `ps -u cvmfs-test -p $_ | grep $_`;
+		if ($process) {
+			$cnt = kill 0, $_;
+			if ($cnt > 0) {
+				print $fh "Sending TERM signal to process $_ ... ";
+				$success = kill 15, $_;
+			}
+			if ( defined($success) and $success > 0) {
+				print $fh "Process terminated.\n";
+			}
+			else {
+				print $fh "Impossible to terminate the process $_\n";
+			}
 		}
 		else {
-			print_to_fifo ($OUTPUT, "Impossible to terminate the process\n");
+			print $fh "No process with PID $_\n";
 		}
 	}
+	close_fifo($fh);
 }
+
+sub jobs {
+	my @process = `ps -u cvmfs-test -o pid,args | grep -v defunct | grep -v cvmfs-test`;
+	
+	my $fh = open_wfifo($OUTPUT);
+	foreach (@process) {
+		print $fh $_;
+	}
+	close_fifo($fh);
+}
+
+1;

@@ -32,10 +32,56 @@ sub remove_fifo {
 	}
 }
 
+# This function will kill all remaining process that were started by the daemon
+sub killing_child {
+	# Retrieving the list of processes
+	my @process = `ps -u cvmfs-test -o pid,args | grep -v defunct | grep -v cvmfs-test | grep -v PID`;
+	
+	# Array to store all pids
+	my @pids;
+	
+	# Retrieving pids from the process list
+	foreach (@process) {
+		my $pid = (split /[[:blank:]]/, $_)[1];
+		push @pids,$pid;
+	}
+	
+	my ($cnt, $success);
+	foreach(@pids){
+		my $process = `ps -u cvmfs-test -p $_ | grep $_`;
+		if ($process) {
+			$cnt = kill 0, $_;
+			if ($cnt > 0) {
+				print "Sending TERM signal to process $_ ... ";
+				$success = kill 15, $_;
+			}
+			if ( defined($success) and $success > 0) {
+				print "Process terminated.\n";
+			}
+			else {
+				print "Impossible to terminate the process $_\n";
+			}
+		}
+		else {
+			print "No process with PID $_\n";
+		}
+	}
+}
+
 # This functions is called when the daemon gets the 'stop' command. It launches
 # some cleaning functions and exit.
 sub stop_daemon {
-	print_to_fifo ($OUTPUT, "Deamon stopped.\n");
+	# Opening the FIFO for output
+	my $fh = open_wfifo($OUTPUT);
+	
+	# Killing all remaining process
+	killing_child();
+	
+	# Printing to the FIFO the last log. 
+	print $fh "Deamon stopped.\n";
+	
+	# Closing the FIFO before removal
+	close_fifo($fh);
 	
 	# Removing the FIFO. Do it only when you're sure you don't have any more output to send.
 	remove_fifo();

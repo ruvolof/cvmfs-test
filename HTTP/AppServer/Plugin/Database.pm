@@ -5,7 +5,7 @@ package HTTP::AppServer::Plugin::Database;
 # common database queries, such as select, update, delete etc.
 # 2010 by Tom Kirchner
 
-use 5.010000;
+#use 5.010000;
 use strict;
 use warnings;
 use DBI;

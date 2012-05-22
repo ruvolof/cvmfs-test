@@ -4,7 +4,7 @@ package HTTP::AppServer::Plugin::HTTPAuth;
 # on a certain handler regex.
 # 2010 by Tom Kirchner
 
-use 5.010000;
+#use 5.010000;
 use strict;
 use warnings;
 use MIME::Base64;

@@ -112,6 +112,12 @@ sub print_command_help {
 	# Retrieving argument: the command
 	my $command = shift;
 	
+	# Checking if the command has a specific help file in shell_help
+	if ($command eq 'setup' or $command eq 'fixperm') {
+		print_shell_help($command);
+		return;
+	}
+	
 	# Retrieving the right help file
 	my $helpfile = get_help_file($command);
 	

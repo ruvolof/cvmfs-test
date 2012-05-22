@@ -9,7 +9,7 @@ package HTTP::AppServer::Plugin::JsonCrud;
 #
 ################################################################################
 
-use 5.010000;
+#use 5.010000;
 use strict;
 use warnings;
 use Data::UUID;

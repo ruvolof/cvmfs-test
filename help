@@ -9,8 +9,9 @@ Short:
 Short:Shell commands:
 Short:  help (h)	Print this help and exit.
 Short:  exit (q)	Exit from the shell.
+Short:  jobs		Show info about running processes.
 Short:  kill PID	Send TERM signal to PID.
-Short:  fixperm		Fix permission for files and directories.
+Short:  fixperm	Fix permission for files and directories.
 Short:  setup		Setup the environment for the daemon.
 Short:  start		Start the daemon.
 Short:  status	Check whether the daemon is running.

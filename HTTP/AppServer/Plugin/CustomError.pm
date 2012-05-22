@@ -3,7 +3,7 @@ package HTTP::AppServer::Plugin::CustomError;
 # for all HTTP error codes.
 # 2010 by Tom Kirchner
 
-use 5.010000;
+#use 5.010000;
 use strict;
 use warnings;
 use HTTP::AppServer::Plugin;

@@ -5,7 +5,7 @@ use warnings;
 use POSIX qw(mkfifo);
 use IO::Handle;
 use Functions::Help qw(help);
-use Functions::Launcher qw(launch kill_process);
+use Functions::Launcher qw(launch kill_process jobs);
 use Functions::FIFOHandle qw(open_rfifo open_wfifo close_fifo print_to_fifo);
 use Functions::Testd qw(stop_daemon);
 
@@ -59,6 +59,9 @@ while(1) {
 			
 			# Here is the KILL case
 			elsif($_ eq 'kill') { kill_process(@options) }
+			
+			# Here is the JOBS case
+			elsif ($_ eq 'jobs') { jobs() }
 			
 			# The default case will try to launch the appropriate plugin
 			else { launch($command, @options) }
