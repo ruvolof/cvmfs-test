@@ -7,6 +7,10 @@ named:	Usage: named <options>
 named:
 named:	List of available options:
 named:	  --port PORT	Listen on port PORT. 5353 by default.
+named:	  --stdout FILE	Send output to FILE.
+named:			Default to /var/log/cvmfs-test/named.out.
+named:	  --stderr FILE	Send error to FILE.
+named:			Default to /var/log/cvmfs-test/named.err.
 named:
 named:	Error conditions options:
 named:	  --fixed IP	Will always serve IP for an A record.

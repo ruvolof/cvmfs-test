@@ -24,37 +24,18 @@ sub setup {
 		print "You will need to be in the sudoers file to complete the setup process. Are you? [N,y]";
 		my $answer = <STDIN>;
 		
-		# Variables to record success and failure
-		my ($compile_success, $user_added, $wrapper_chown, $wrapper_setuid);
+		my $compile_success = compile_wrapper();
+		my $user_added = create_user();
+		my $wrapper_chown = chown_wrapper();
+		my $wrapper_setuid = setuid_wrapper();
+		my $log_folder = create_log_folder();
+	
+		print "\n";
+		print '_' x 80 . "\n";
+		print "Setup complete. Run 'fixperm' to be sure all permission are set correctly.\n";
+		print "You can type 'help fixperm' to show what this command does.\n";
+		print '_' x 80 . "\n";
 		
-		# The setup process will start only if the user states he is able to perform sudo commands
-		if ($answer eq "y\n" or $answer eq "Y\n"){
-			$compile_success = compile_wrapper();
-			
-			# If the wrapper was successfully compiled, creating the user for the wrapper
-			if ($compile_success){
-				$user_added = create_user();
-				
-				# If the user was successfully created, chowning the programm
-				if ($user_added) {
-					$wrapper_chown = chown_wrapper();
-					
-					# If the wrapper is owned by the user cvmfs-test, setuid on the wrapper
-					if ($wrapper_chown) {
-						$wrapper_setuid = setuid_wrapper();
-						
-						# If all operations ended correctly
-						if ($wrapper_setuid) {
-							print "\n";
-							print '_' x 80 . "\n";
-							print "Setup complete. Run 'fixperm' to be sure all permission are set correctly.\n";
-							print "You can type 'help fixperm' to show what this command does.\n";
-							print '_' x 80 . "\n";
-						}
-					}
-				}
-			}
-		}
 	}
 	else {
 		print "The daemon is running. Can't run setup while the daemon is running.\nStop it and retry.\n";
@@ -115,7 +96,7 @@ sub chown_wrapper {
 	# Checking if the user own the daemon wrapper
 	my $uid = (stat("$Bin/cvmfs-testdwrapper"))[4];
 	my $owner = (getpwuid($uid))[0];
-	if($owner ne 'cvmfs-test') {
+	if($owner ne 'root') {
 		print "Changing the owner of the wrapper... \n";
 		my $chowned = system("sudo chown root:root $Bin/cvmfs-testdwrapper");
 		if ($chowned == -1){
@@ -174,6 +155,30 @@ sub fixperm {
 	print 'Setting permission for help files to 644... ';
 	system("find -type f -name \"*help\" -exec chmod 644 {} +");
 	print "Done.\n";
+}
+
+sub create_log_folder {
+	unless( -e '/var/log/cvmfs-test' ) {
+		print 'Creating /var/log/cvmfs-test... ';
+		system("sudo mkdir -p /var/log/cvmfs-test");
+		print "Done.\n";
+	}
+	else {
+		print "Log folder already present on the system.\n";
+	}
+	
+	my $uid = (stat('/var/log/cvmfs-test'))[4];
+	my $owner = (getpwuid($uid))[0];
+	
+	unless ($uid eq 'cvmfs-test') {
+		print 'Setting owner and permission on the log folder...';
+		system("sudo chown cvmfs-test /var/log/cvmfs-test");
+		system("sudo chmod 777 /var/log/cvmfs-test");
+		print "Done.\n";
+	}
+	else {
+		print "Log folder already owned by user cvmfs-test.\n";
+	}
 }
 
 1;

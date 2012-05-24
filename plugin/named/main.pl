@@ -8,10 +8,14 @@ use IO::Handle;
 my $port = 5300;
 my $fixed = undef;
 my $timeout;
+my $outputfile = '/var/log/cvmfs-test/named.out';
+my $errorfile = '/var/log/cvmfs-test/named.err';
 
 my $ret = GetOptions ("port=i" => \$port,
 					  "fixed=s" => \$fixed,
-					  "timeout" => \$timeout );
+					  "timeout" => \$timeout,
+					  "stdout=s" => \$outputfile,
+					  "stderr=s" => \$errorfile );
 
 sub reply_handler {
 	# If is set the timeout flag, the reply_handler will wait 180s
@@ -58,19 +62,24 @@ my $ns = new Net::DNS::Nameserver(
     Verbose      => 1
     ) || die "couldn't create nameserver object\n";
 
-my $pid = fork;
+my $pid = fork();
 
 # Command for the forked process
 if (defined ($pid) and $pid == 0){
-	open (my $outfh, '>', '/tmp/cvmfs-named.out') || die "Couldn't open /tmp/cvmfs-named.out: $!\n";
-	STDOUT->fdopen( \*$outfh, 'w' ) || die "Couldn't set STDOUT to /tmp/cvmfs-named.out: $!\n";
+	open (my $errfh, '>', $errorfile ) || die "Couldn't open $errorfile: $!\n";
+	STDERR->fdopen( \*$errfh, 'w' ) || die "Couldn't set STDERR to $errorfile: $!\n";
+
+	open (my $outfh, '>', $outputfile ) || die "Couldn't open $outputfile: $!\n";
+	STDOUT->fdopen( \*$outfh, 'w' ) || die "Couldn't set STDOUT to $outputfile: $!\n";
 	$ns->main_loop;
+	
 }
 
 # Command for the main script
 unless ($pid == 0){
 	print "DNS started on port $port with PID $pid.\n";
-	print "You can read its output in '/tmp/cvmfs-named.out'.\n";
+	print "You can read its output in '$outputfile'.\n";
+	print "Errors are stored in '$errorfile'.\n";
 }
 	
 exit 0;

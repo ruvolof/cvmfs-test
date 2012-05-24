@@ -39,3 +39,15 @@ fixperm:	  find -type f -name "*.pl" -exec chmod 755 {} +
 fixperm:	  find -type d -exec chmod 755 {} +
 fixperm:	  find -type f -name "*help" -exec chmod 644 {} +
 fixperm:
+
+start:
+start:start
+start:	Start the daemon.
+start:	Usage: start <options>
+start:
+start:	Available options:
+start:	  --stdout STDOUT	Redirect daemon output on STDOUT.
+start:				Default to /var/log/cvmfs-test/daemon.output.
+start:	  --stderr STDERR	Redirect daemon error on STDERR.
+start:				Default to /var/log/cvmfs-test/daemon.error.
+start:

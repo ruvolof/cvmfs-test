@@ -42,7 +42,7 @@ sub killing_child {
 	
 	# Retrieving pids from the process list
 	foreach (@process) {
-		my $pid = (split /[[:blank:]]/, $_)[1];
+		my $pid = (split /[[:blank:]]/, $_)[0];
 		push @pids,$pid;
 	}
 	
@@ -78,7 +78,7 @@ sub stop_daemon {
 	killing_child();
 	
 	# Printing to the FIFO the last log. 
-	print $fh "Deamon stopped.\n";
+	print $fh "Daemon stopped.\n";
 	
 	# Closing the FIFO before removal
 	close_fifo($fh);
