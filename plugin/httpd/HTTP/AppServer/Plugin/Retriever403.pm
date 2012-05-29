@@ -1,4 +1,4 @@
-package HTTP::AppServer::Plugin::Retriever404;
+package HTTP::AppServer::Plugin::Retriever403;
 # Plugin for HTTP::AppServer that retrieves files from a document root.
 # 2010 by Tom Kirchner
 
@@ -41,7 +41,7 @@ sub init
 sub _handle_file
 {
 	my $server = shift;
-	$server->errorpage(404);
+	$server->errorpage(403);
 }
 
 

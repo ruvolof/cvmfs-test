@@ -50,7 +50,7 @@ sub launch {
 	if(defined ($mainfile)){
 		($pid, $infh, $outfh, $errfh) = spawn('perl ' . $mainfile . ' ' . $options);
 		my $fh = open_wfifo($OUTPUT);
-		while (defined(my $line = <$outfh>)){
+		while (defined(my $line = <$errfh>)){
 			print $fh $line;
 		}
 		close $outfh;
