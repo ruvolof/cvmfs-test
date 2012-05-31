@@ -9,14 +9,9 @@ use lib $Bin;
 
 use strict;
 use warnings;
-use POSIX qw(mkfifo);
 use Proc::Spawn;
 use Functions::Shell qw(check_daemon check_command start_daemon);
-use Functions::FIFOHandle qw(open_rfifo open_wfifo close_fifo print_to_fifo);
-
-# These are the FIFOs used to communicate with the daemon
-my $INPUT = '/tmp/cvmfs-testd-input.fifo';
-my $OUTPUT = '/tmp/cvmfs-testd-output.fifo';
+use ZeroMQ qw/:all/;
 
 # A simple welcome.
 print '#'x80 . "\n";
@@ -32,6 +27,12 @@ unless (check_daemon()) {
 		start_daemon();
 	}
 }
+
+# Connect to the socket
+my $ctxt = ZeroMQ::Raw::zmq_init(5) || die "Couldn't initialise ZeroMQ context: $!\n.";
+my $socket = ZeroMQ::Raw::zmq_socket($ctxt, ZMQ_DEALER) || die "Couldn't create socket: $!\n.";
+
+ZeroMQ::Raw::zmq_connect( $socket, 'ipc:///tmp/server.ipc' );
 
 # Infinite loop for the shell. It will switch between two shells: the first one
 # is the one used when the shell is connected to the daemon. The second one is used
@@ -50,22 +51,16 @@ while(1){
 		# If the command was already executed, passing to the next while cicle
 		next if $continue;
 		
-		# Opening the $INPUT FIFO to send commands to the daemon
-		my $myinput = open_wfifo($INPUT);	
-		# Sending the command
-		print $myinput $line;
-		# Closing the file
-		close_fifo($myinput);
+		# Send the command through the socket
+		ZeroMQ::Raw::zmq_send($socket, $line);
 		
-		# Opening the $OUTPUT FIFO to get the answer from the daemon
-		my $myoutput = open_rfifo($OUTPUT);
-		
-		# Waiting for the answer and printing it
-		while( defined(my $outputline = <$myoutput>)){
-			print $outputline;
+		# Get answer from the daemon
+		my $reply = '';
+		while ($reply ne "END\n") {
+			my $msg = ZeroMQ::Raw::zmq_recv($socket);
+			$reply = ZeroMQ::Raw::zmq_msg_data($msg);
+			print $reply if $reply ne "END\n";
 		}
-		
-		close_fifo($myoutput);
 	}
 	
 	# This is the second shell, use when the daemon is closed

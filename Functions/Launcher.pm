@@ -8,7 +8,7 @@ use strict;
 use warnings;
 use File::Find;
 use Proc::Spawn;
-use Functions::FIFOHandle qw(open_rfifo open_wfifo close_fifo print_to_fifo);
+use Functions::ServerSocket qw(send_msg);
 
 # The next line is here to help me find the directory of the script
 # if you have a better method, let me know.
@@ -18,10 +18,6 @@ use FindBin qw($Bin);
 use base 'Exporter';
 use vars qw/ @EXPORT_OK /;
 @EXPORT_OK = qw{ launch kill_process jobs };
-
-# These are the paths where FIFOs are stored
-my $INPUT = '/tmp/cvmfs-testd-input.fifo';
-my $OUTPUT = '/tmp/cvmfs-testd-output.fifo';
 
 # This function will be launched everytime a command is invoked from the shell. It will
 # search recursively from $Bin for a main.pl file inside a folder named as the requested command.
@@ -49,15 +45,12 @@ sub launch {
 	# Executing the script, if found
 	if(defined ($mainfile)){
 		($pid, $infh, $outfh, $errfh) = spawn('perl ' . $mainfile . ' ' . $options);
-		my $fh = open_wfifo($OUTPUT);
-		while (defined(my $line = <$errfh>)){
-			print $fh $line;
+		while (defined(my $line = <$outfh>)){
+			send_msg($line);
 		}
-		close $outfh;
-		close_fifo($fh);
 	}
 	else {
-		print_to_fifo ($OUTPUT, "Command not found. Type 'help' for a list of available command.\n");
+		send_msg("Command not found. Type 'help' for a list of available command.\n");
 	}
 }
 
@@ -70,37 +63,33 @@ sub kill_process {
 	my $cnt;
 	
 	# Start killing all process
-	my $fh = open_wfifo($OUTPUT);
 	foreach(@pids){
 		my $process = `ps -u cvmfs-test -p $_ | grep $_`;
 		if ($process) {
 			$cnt = kill 0, $_;
 			if ($cnt > 0) {
-				print $fh "Sending TERM signal to process $_ ... ";
+				send_msg("Sending TERM signal to process $_ ... ");
 				$success = kill 15, $_;
 			}
 			if ( defined($success) and $success > 0) {
-				print $fh "Process terminated.\n";
+				send_msg("Process terminated.\n");
 			}
 			else {
-				print $fh "Impossible to terminate the process $_\n";
+				send_msg("Impossible to terminate the process $_.\n");
 			}
 		}
 		else {
-			print $fh "No process with PID $_\n";
+			send_msg("No process with PID $_\n");
 		}
 	}
-	close_fifo($fh);
 }
 
 sub jobs {
 	my @process = `ps -u cvmfs-test -o pid,args | grep -v defunct | grep -v cvmfs-test`;
 	
-	my $fh = open_wfifo($OUTPUT);
 	foreach (@process) {
-		print $fh $_;
+		send_msg($_);
 	}
-	close_fifo($fh);
 }
 
 1;

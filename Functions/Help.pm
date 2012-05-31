@@ -18,10 +18,6 @@ use base 'Exporter';
 use vars qw/ @EXPORT_OK /;
 @EXPORT_OK = qw(help);
 
-# These are the paths where FIFOs are stored
-my $INPUT = '/tmp/cvmfs-testd-input.fifo';
-my $OUTPUT = '/tmp/cvmfs-testd-output.fifo';
-
 # This functions will be launched everytime the user type the help command.
 # The goal of this function is only to select wich other help functions is needed.
 sub help {
