@@ -10,7 +10,7 @@ use lib $Bin;
 use strict;
 use warnings;
 use Proc::Spawn;
-use Functions::Shell qw(check_daemon check_command start_daemon);
+use Functions::Shell qw(check_daemon check_command start_daemon get_daemon_output);
 use Functions::ShellSocket qw(start_shell_socket receive_shell_msg send_shell_msg close_shell_socket term_shell_ctxt);
 
 # A simple welcome.
@@ -53,18 +53,7 @@ while(1){
 		send_shell_msg($line);
 		
 		# Get answer from the daemon
-		my $reply = '';
-		while ($reply ne "END\n") {
-			$reply = receive_shell_msg();
-			# Closing shell socket if it receives DAEMON_STOPPED signal
-			if ($reply eq "DAEMON_STOPPED\n") { 
-				close_shell_socket(); 
-				term_shell_ctxt();
-				# Setting $reply to END to terminate to wait output
-				$reply = "END\n";
-			}
-			print $reply if $reply ne "END\n";
-		}
+		get_daemon_output();
 	}
 	
 	# This is the second shell, use when the daemon is closed

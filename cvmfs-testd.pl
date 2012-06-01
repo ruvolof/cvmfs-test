@@ -20,7 +20,7 @@ while(1) {
 	# Deleting return at the end of the line
 	chomp($line);
 
-	print "Processing command: $line ... ";
+	print "Processing command: $line... ";
 	
 	# Splitting $line in an array depending on blank...
 	my @words = split /[[:blank:]]/, $line;
@@ -52,7 +52,7 @@ while(1) {
 	print "Done.\n";
 	
 	# Sending to the shell a signal to terminate output
-	end_msg();	
+	end_msg();
 }
 	
 

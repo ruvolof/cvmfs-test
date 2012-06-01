@@ -13,11 +13,12 @@ use Fcntl ':mode';
 use Getopt::Long;
 use Functions::Setup qw(setup fixperm);
 use Functions::ShellSocket qw(start_shell_socket close_shell_socket term_shell_ctxt);
+use Functions::ShellSocket qw(send_shell_msg receive_shell_msg close_shell_socket term_shell_ctxt);
 
 # Next lines are needed to export subroutines to the main package
 use base 'Exporter';
 use vars qw/ @EXPORT_OK /;
-@EXPORT_OK = qw(check_daemon check_command start_daemon);
+@EXPORT_OK = qw(check_daemon check_command start_daemon get_daemon_output);
 
 # The next line is here to help me find the directory of the script
 # if you have a better method, let me know.
@@ -47,6 +48,7 @@ sub check_command {
 		elsif ($_ =~ m/^help\s*.*/ or $_ =~ m/^h\s.*/) { help($command), $executed = 1 }
 		elsif ($_ eq 'setup' ) { setup(); $executed = 1 }
 		elsif ($_ eq 'fixperm') { fixperm(); $executed = 1 }
+		elsif ($_ =~ m/^restart\s*.*/ ) { restart_daemon($command); $executed = 1 }
 	}
 	
 	# If the daemon is not running and no command was executed, print on screen a message
@@ -111,6 +113,22 @@ sub check_permission {
 	}
 }
 
+# This function will call a loop to wait for a complex output from the daemon
+sub get_daemon_output {
+	my $reply = '';
+	while ($reply ne "END\n") {
+		$reply = receive_shell_msg();
+		# Closing shell socket if it receives DAEMON_STOPPED signal
+		if ($reply eq "DAEMON_STOPPED\n") { 
+			close_shell_socket(); 
+			term_shell_ctxt();
+			# Setting $reply to END to terminate to wait output
+			$reply = "END\n";
+		}
+		print $reply if $reply ne "END\n";
+	}
+}
+
 # This function will start the daemon if it's not already running
 sub start_daemon {
 	if (defined (@_) and scalar(@_) > 0) {
@@ -119,7 +137,7 @@ sub start_daemon {
 		
 		# Splitting $line in an array depending on blank...
 		my @words = split /[[:blank:]]/, $line;
-		# Everything else, if exist, are options.
+		# Everything but the first word, if exist, are options.
 		my @options = splice(@words, 1);
 	
 		# Setting ARGV to @options for GetOptions works properly
@@ -163,6 +181,21 @@ sub start_daemon {
 	}
 	else {
 		print "Daemon is already running. Cannot run another instance.\n";
+	}
+}
+
+# This function will stop and restart the daemon
+sub restart_daemon {
+	# Retrieving options to pass to start_daemon
+	my $line = shift;
+	
+	if (check_daemon()) {
+		send_shell_msg("stop");
+		get_daemon_output();
+		start_daemon($line);
+	}
+	else {
+		print "Daemon is not running. Type 'start' to run it.\n"
 	}
 }
 

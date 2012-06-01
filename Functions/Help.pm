@@ -109,7 +109,7 @@ sub print_command_help {
 	my $command = shift;
 	
 	# Checking if the command has a specific help file in shell_help
-	if ($command eq 'setup' or $command eq 'fixperm' or $command eq 'start') {
+	if ($command eq 'setup' or $command eq 'fixperm' or $command eq 'start' or $command eq 'restart') {
 		print_shell_help($command);
 		return;
 	}
