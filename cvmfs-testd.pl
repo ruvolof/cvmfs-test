@@ -6,8 +6,13 @@ use IO::Handle;
 use Functions::Help qw(help);
 use Functions::Launcher qw(launch kill_process jobs);
 use Functions::Testd qw(stop_daemon);
-use Functions::ServerSocket qw(receive_msg end_msg);
+use Functions::ServerSocket qw(start_socket receive_msg end_msg);
 
+# Opening the socket and dying if fail
+my $socket_started = start_socket();
+unless ($socket_started) {
+	die "Failed to open the socket. Aborting.\n";
+}
 
 while(1) {
 	my $line = receive_msg();

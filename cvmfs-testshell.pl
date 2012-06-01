@@ -11,7 +11,7 @@ use strict;
 use warnings;
 use Proc::Spawn;
 use Functions::Shell qw(check_daemon check_command start_daemon);
-use ZeroMQ qw/:all/;
+use Functions::ShellSocket qw(start_shell_socket receive_shell_msg send_shell_msg close_shell_socket term_shell_ctxt);
 
 # A simple welcome.
 print '#'x80 . "\n";
@@ -20,19 +20,17 @@ print "Type 'help' for a list of available commands.\n";
 print '#'x80 . "\n";
 
 # If the daemon is not running, the shell will ask the use if run it
-unless (check_daemon()) {
+if (!check_daemon()) {
 	print 'The daemon is not running. Would you like to run it now? [Y/n]';
 	my $answer = <STDIN>;
 	if($answer eq "\n" or $answer eq "Y\n" or $answer eq "y\n"){
 		start_daemon();
 	}
 }
-
-# Connect to the socket
-my $ctxt = ZeroMQ::Raw::zmq_init(5) || die "Couldn't initialise ZeroMQ context: $!\n.";
-my $socket = ZeroMQ::Raw::zmq_socket($ctxt, ZMQ_DEALER) || die "Couldn't create socket: $!\n.";
-
-ZeroMQ::Raw::zmq_connect( $socket, 'ipc:///tmp/server.ipc' );
+else {
+	# Starting the socket to communicate with the server
+	start_shell_socket();
+}
 
 # Infinite loop for the shell. It will switch between two shells: the first one
 # is the one used when the shell is connected to the daemon. The second one is used
@@ -52,13 +50,19 @@ while(1){
 		next if $continue;
 		
 		# Send the command through the socket
-		ZeroMQ::Raw::zmq_send($socket, $line);
+		send_shell_msg($line);
 		
 		# Get answer from the daemon
 		my $reply = '';
 		while ($reply ne "END\n") {
-			my $msg = ZeroMQ::Raw::zmq_recv($socket);
-			$reply = ZeroMQ::Raw::zmq_msg_data($msg);
+			$reply = receive_shell_msg();
+			# Closing shell socket if it receives DAEMON_STOPPED signal
+			if ($reply eq "DAEMON_STOPPED\n") { 
+				close_shell_socket(); 
+				term_shell_ctxt();
+				# Setting $reply to END to terminate to wait output
+				$reply = "END\n";
+			}
 			print $reply if $reply ne "END\n";
 		}
 	}

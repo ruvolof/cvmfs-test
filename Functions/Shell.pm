@@ -12,6 +12,7 @@ use Proc::Daemon;
 use Fcntl ':mode';
 use Getopt::Long;
 use Functions::Setup qw(setup fixperm);
+use Functions::ShellSocket qw(start_shell_socket close_shell_socket term_shell_ctxt);
 
 # Next lines are needed to export subroutines to the main package
 use base 'Exporter';
@@ -40,7 +41,7 @@ sub check_command {
 	
 	# Switching the value of $command
 	for ($command){
-		if ($_ eq 'exit' or $_ eq 'quit' or $_ eq 'q') { exit 0 }
+		if ($_ eq 'exit' or $_ eq 'quit' or $_ eq 'q') { exit_shell() }
 		elsif ($_ eq 'status') { print_status(); $executed = 1 }
 		elsif ($_ =~ m/^start\s*.*/ ) { start_daemon($command); $executed = 1 }
 		elsif ($_ =~ m/^help\s*.*/ or $_ =~ m/^h\s.*/) { help($command), $executed = 1 }
@@ -145,6 +146,16 @@ sub start_daemon {
 													exec_command => "./cvmfs-testdwrapper ./cvmfs-testd.pl",
 												} );
 			print "Done.\n";
+			
+			# Opening the socket to communicate with the server
+			print "Opening the socket... ";
+			my $socket_started = start_shell_socket();
+			if ($socket_started) {
+				print "Done.\n";
+			}
+			else {
+				print "Failed.\n";
+			}
 		}
 		else {
 			print "Wrong permission on important files. Did you run 'setup'?\n";
@@ -153,6 +164,14 @@ sub start_daemon {
 	else {
 		print "Daemon is already running. Cannot run another instance.\n";
 	}
+}
+
+# This functions will close the shell after closing socket and terminate ZeroMQ context
+sub exit_shell {
+	close_shell_socket();
+	term_shell_ctxt();
+	
+	exit 0;
 }
 
 1;

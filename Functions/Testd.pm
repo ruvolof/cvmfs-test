@@ -71,6 +71,7 @@ sub stop_daemon {
 	
 	# Printing to the FIFO the last log. 
 	send_msg("Daemon stopped.\n");
+	send_msg("DAEMON_STOPPED\n");
 	send_msg("END\n");
 	
 	# Removing the FIFO. Do it only when you're sure you don't have any more output to send.
