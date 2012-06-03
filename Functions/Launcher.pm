@@ -44,9 +44,16 @@ sub launch {
 	
 	# Executing the script, if found
 	if(defined ($mainfile)){
+		my $error_found = 0;
 		($pid, $infh, $outfh, $errfh) = spawn('perl ' . $mainfile . ' ' . $options);
-		while (defined(my $line = <$outfh>)){
-			send_msg($line);
+		while (defined(my $err = $errfh->getline)){
+			$error_found = 1;
+			send_msg($err);
+		}
+		unless ($error_found) {
+			while (defined(my $line = $outfh->getline)){
+				send_msg($line);
+			}
 		}
 	}
 	else {

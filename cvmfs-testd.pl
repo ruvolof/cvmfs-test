@@ -53,6 +53,8 @@ while(1) {
 	
 	# Sending to the shell a signal to terminate output
 	end_msg();
+	
+	STDOUT->flush;
 }
 	
 

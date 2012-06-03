@@ -18,4 +18,5 @@ httpd:
 httpd:	Error conditions options:
 httpd:	  --404		Will always serve 404 error pages.
 httpd:	  --403		Will always serve 403 error pages.
+httpd:	  --timeout	Wait 300 seconds.
 httpd:

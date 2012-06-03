@@ -41,7 +41,7 @@ while(1){
 	while(check_daemon()){
 		print '-> ';
 		# Reading an input line.
-		my $line = <STDIN>;
+		my $line = STDIN->getline;
 		chomp($line);
 		
 		# Checking if the command refer to the shell and not to the daemon
@@ -60,7 +60,7 @@ while(1){
 	while(!check_daemon()){
 		print '(Daemon not running) -> ';
 		# Reading an input line.
-		my $line = <STDIN>;
+		my $line = STDIN->getline;
 		chomp($line);
 		
 		# Launching the command

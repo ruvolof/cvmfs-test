@@ -91,7 +91,7 @@ sub print_help {
 	# starting with 'Short:'.
 	foreach (@helpfiles) {
 		open (my $file, $_);
-		while (defined (my $line = <$file>)){
+		while (defined (my $line = $file->getline)){
 			if($line =~ m/^Short:.*/){
 				my @helpline = split /[:]/,$line,2;
 				print $helpline[1];
@@ -120,7 +120,7 @@ sub print_command_help {
 	# If the helpfile exists, now it's time to print it's content.
 	if ( defined ($helpfile) && -e $helpfile){
 		open (my $file, $helpfile);
-		while (defined (my $line = <$file>)){
+		while (defined (my $line = $file->getline)){
 			if($line =~ m/^$command:.*/){
 				my @helpline = split /[:]/,$line,2;
 				print $helpline[1];
@@ -150,7 +150,7 @@ sub print_shell_help {
 	# Printing help information
 	if ( defined ($helpfile) && -e $helpfile){
 		open (my $file, $helpfile);
-		while (defined (my $line = <$file>)){
+		while (defined (my $line = $file->getline)){
 			if (!defined ($command)) {
 				if($line =~ m/^Short:.*/){
 					my @helpline = split /[:]/,$line,2;

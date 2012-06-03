@@ -9,6 +9,7 @@ my $not_found = undef;
 my $forbidden = undef;
 my $serve_all = undef;
 my $index_of = undef;
+my $timeout = undef;
 my $serve_error = 0;
 my $port = 8080;
 my $docroot = '/tmp';
@@ -19,6 +20,7 @@ my $errorfile = '/var/log/cvmfs-test/httpd.err';
 my $ret = GetOptions ( "404" => \$not_found,
 					   "403" => \$forbidden,
 					   "all" => \$serve_all,
+					   "timeout" => \$timeout,
 					   "index-of" => \$index_of,
 					   "port=i" => \$port,
 					   "root=s" => \$docroot,
@@ -37,6 +39,10 @@ if (defined ($not_found)){
 if (defined ($forbidden)) {
 	$retriever = 'Retriever403';
 	$serve_error = 1;
+}
+
+if (defined ($timeout)) {
+	$retriever = 'Timeout';
 }
 
 # Create server instance at localhost:$port

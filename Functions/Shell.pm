@@ -163,7 +163,12 @@ sub start_daemon {
 													child_STDERR => $daemon_error,
 													exec_command => "./cvmfs-testdwrapper ./cvmfs-testd.pl",
 												} );
-			print "Done.\n";
+			if (check_daemon()) {
+				print "Done.\n";
+			}
+			else {
+				print "Failed.\n Have a look to $daemon_error.\n";
+			}
 			
 			# Opening the socket to communicate with the server
 			print "Opening the socket... ";
