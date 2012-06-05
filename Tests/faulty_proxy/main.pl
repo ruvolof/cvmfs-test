@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use Archive::Extract;
 use ZeroMQ qw/:all/;
+use Crypt::OpenSSL::RSA;
 
 use FindBin qw($Bin);
 
@@ -10,6 +11,15 @@ my $repo_pub = $tmp_repo . 'pub';
 my $outputfile = '/var/log/cvmfs-test/faulty_proxy.out';
 my $errorfile = '/var/log/cvmfs-test/faulty_proxy.err';
 my $socket_path = 'ipc:///tmp/server.ipc';
+
+sub get_daemon_output {
+	my $socket = shift;
+	my $reply = '';
+	while ($reply ne "END\n") {
+		$reply = $socket->recv();
+		print $reply if $reply ne "END\n";
+	}
+}
 
 my $pid = fork();
 
@@ -35,6 +45,28 @@ if (defined ($pid) and $pid == 0) {
 	
 	print "Starting services for test... \n";
 	$socket->send("httpd --root $repo_pub --port 8080");
+	get_daemon_output($socket);
+	sleep 2;
 	$socket->send("httpd --root $repo_pub --port 8081 --timeout");
+	get_daemon_output($socket);
+	sleep 2;
+	$socket->send("webproxy --port 3128 --deliver-crap --fail all");
+	get_daemon_output($socket);
+	sleep 2;
+	$socket->send("webproxy --port 3129 --backend http://localhost:8080");
+	get_daemon_output($socket);
+	sleep 2;
+	$socket->send("webproxy --port 3130 --backend http://localhost:8081");
+	get_daemon_output($socket);
+	sleep 2;
+	print "All services started.\n";
 
 }
+
+if (defined ($pid) and $pid != 0) {
+	print "faulty_proxy test started.\n";
+	print "You can read its output in $outputfile.\n";
+	print "Errors are stored in $errorfile.\n";
+}
+
+exit 0;
