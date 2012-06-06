@@ -73,7 +73,7 @@ sub print_status {
 
 # This functions will check that file permission are set
 sub check_permission {
-	my ($user, $suid, $owner, $log_owner);
+	my ($user, $suid, $owner, $log_owner, $sudoers);
 	# Checking if the user exists in the system
 	$user = `cat /etc/passwd | grep cvmfs-test`;
 	

@@ -2,7 +2,7 @@ use strict;
 use warnings;
 use Archive::Extract;
 use ZeroMQ qw/:all/;
-use Crypt::OpenSSL::RSA;
+use File::Copy;
 
 use FindBin qw($Bin);
 
@@ -60,7 +60,39 @@ if (defined ($pid) and $pid == 0) {
 	get_daemon_output($socket);
 	sleep 2;
 	print "All services started.\n";
-
+	
+	print 'Configuring cvmfs... ';
+	$su = Sudo->new(
+                  {
+                   sudo         => '/usr/bin/sudo',                              
+                   program      => "$Bin/config_cvmfs.sh"
+                  }
+    );
+    my $sudo = su->sudo_run();
+    print "Done.\n";
+    
+    print 'Creating RSA key... ';
+    system("$Bin/creating_rsa.sh");
+    print "Done.\n";
+    
+    print 'Signing files... ';
+    my @files_to_sign;
+    my $select = sub {
+		if ($File::Find::name =~ m/\.cvmfspublished/){
+			push @files_to_sign,$File::Find::name;
+		}
+	};
+	find( { wanted => $select }, $repo_pub );
+	foreach (@files_to_sign) {
+		copy($_,"$_.unsigned");
+		system("$Bin/cvmfs_sign-linux32 -c /tmp/cvmfs_test.crt -k /tmp/cvmfs_test.key -n 127.0.0.1 $_");		
+	}
+	copy("tmp/whitelist.test.signed", "$repo_pub/catalogs/.cvmfswhitelist");
+	print "Done.\n";
+	
+	print 'Configurin RSA key... ';
+	system("$Bin/configuring_rsa.sh");
+	print "Done.\n";
 }
 
 if (defined ($pid) and $pid != 0) {

@@ -29,6 +29,7 @@ sub setup {
 		my $wrapper_chown = chown_wrapper();
 		my $wrapper_setuid = setuid_wrapper();
 		my $log_folder = create_log_folder();
+		my $add_to_sudoers = add_to_sudoers();
 	
 		print "\n";
 		print '_' x 80 . "\n";
@@ -155,6 +156,10 @@ sub fixperm {
 	print 'Setting permission for help files to 644... ';
 	system("find -type f -name \"*help\" -exec chmod 644 {} +");
 	print "Done.\n";
+	
+	print 'Setting permission for bash script to 755...';
+	system("find -type f -name \"*.sh\" -exec chmod 755 {} +");
+	print "Done.\n";
 }
 
 sub create_log_folder {
@@ -178,6 +183,18 @@ sub create_log_folder {
 	}
 	else {
 		print "Log folder already owned by user cvmfs-test.\n";
+	}
+}
+
+sub add_to_sudoers {
+	my $sudoers = `sudo cat /etc/sudoers | grep "cvmfs-test ALL=(ALL) NOPASSWD: ALL"`;
+	if ($sudoers) {
+		print "User cvmfs-test is already in the /etc/sudoers file.\n";
+	}
+	else {
+		print 'Adding cvmfs-test to the /etc/sudoers file...';
+		system ('sudo echo "cvmfs-test ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers');
+		print "Done.\n";
 	}
 }
 
