@@ -14,10 +14,11 @@ my $socket_path = 'ipc:///tmp/server.ipc';
 
 sub get_daemon_output {
 	my $socket = shift;
-	my $reply = '';
-	while ($reply ne "END\n") {
+	my ($data, $reply) = '';
+	while ($data ne "END\n") {
 		$reply = $socket->recv();
-		print $reply if $reply ne "END\n";
+		$data = $reply->data;
+		print $data if $data ne "END\n";
 	}
 }
 
@@ -34,13 +35,14 @@ if (defined ($pid) and $pid == 0) {
 	print "Done.\n";
 
 	print "Extracting the repository... ";
-	my $ae = Archive::Extract->new ( archive => 'repo/pub.tar.gz');
-	my $ae_ok = $ae->extract ( to => $tmp_repo ) or die ae->error;
+	my $ae = Archive::Extract->new( archive => "$Bin/repo/pub.tar.gz", type => 'tgz' );
+	my $ae_ok = $ae->extract( to => $tmp_repo ) or die ae->error;
 	print "Done.\n";
 	
 	print "Opening the socket to communicate with the server... \n";
 	my $ctxt = ZeroMQ::Context->new();
-	my $socket = $ctxt->socket(ZMQ_PUSH);
+	my $socket = $ctxt->socket(ZMQ_DEALER);
+	my $setopt = $socket->setsockopt(ZMQ_IDENTITY, 'TEST');
 	$socket->connect( $socket_path );
 	
 	print "Starting services for test... \n";
@@ -62,7 +64,7 @@ if (defined ($pid) and $pid == 0) {
 	print "All services started.\n";
 	
 	print 'Configuring cvmfs... ';
-	$su = Sudo->new(
+	my $su = Sudo->new(
                   {
                    sudo         => '/usr/bin/sudo',                              
                    program      => "$Bin/config_cvmfs.sh"

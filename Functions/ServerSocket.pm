@@ -24,7 +24,7 @@ my $socket;
 # Starting the daemon socket
 sub start_socket {
 	$ctxt = ZeroMQ::Raw::zmq_init(5) || die "Couldn't initialise ZeroMQ context.\n";
-	$socket = ZeroMQ::Raw::zmq_socket($ctxt, ZMQ_DEALER) || die "Couldn't create socket.\n";
+	$socket = ZeroMQ::Raw::zmq_socket($ctxt, ZMQ_ROUTER) || die "Couldn't create socket.\n";
 
 	my $rc = ZeroMQ::Raw::zmq_bind( $socket, $socket_path );
 	

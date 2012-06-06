@@ -25,6 +25,7 @@ my $socket;
 sub start_shell_socket {
 	$ctxt = ZeroMQ::Raw::zmq_init(5) || die "Couldn't initialise ZeroMQ context.\n";
 	$socket = ZeroMQ::Raw::zmq_socket($ctxt, ZMQ_DEALER) || die "Couldn't create socket.\n";
+	my $setopt = ZeroMQ::Raw::zmq_setsockopt($socket, ZMQ_IDENTITY, 'SHELL');
 
 	my $rc = ZeroMQ::Raw::zmq_connect( $socket, $socket_path );
 	

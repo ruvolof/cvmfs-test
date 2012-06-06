@@ -193,7 +193,7 @@ sub add_to_sudoers {
 	}
 	else {
 		print 'Adding cvmfs-test to the /etc/sudoers file...';
-		system ('sudo echo "cvmfs-test ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers');
+		system ('sudo sh -c "echo \"cvmfs-test ALL=(ALL) NOPASSWD: ALL\" >> /etc/sudoers"');
 		print "Done.\n";
 	}
 }
