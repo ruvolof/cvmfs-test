@@ -123,6 +123,7 @@ sub get_daemon_output {
 			term_shell_ctxt();
 			# Setting $reply to END to terminate to wait output
 			$reply = "END\n";
+			sleep 1;
 		}
 		print $reply if $reply ne "END\n";
 	}
@@ -154,7 +155,7 @@ sub start_daemon {
 								   "stderr=s" => \$daemon_error );								  
 			
 			my ($daempid, $daemin, $daemout, $daemerr);
-			print 'Starting daemon...';
+			print 'Starting daemon... ';
 			my $daemonpid = Proc::Daemon::Init( { 
 													work_dir => $Bin,
 													pid_file => '/tmp/daemon.pid',
@@ -162,6 +163,10 @@ sub start_daemon {
 													child_STDERR => $daemon_error,
 													exec_command => "./cvmfs-testdwrapper ./cvmfs-testd.pl",
 												} );
+			# Sleep and wait for the daemon to start or fail
+			sleep 1;
+
+			# Checking if the daemon were started
 			if (check_daemon()) {
 				print "Done.\n";
 			}

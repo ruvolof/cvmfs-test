@@ -68,7 +68,7 @@ sub kill_process {
 	
 	my $success;
 	my $cnt;
-	
+
 	# Start killing all process
 	foreach(@pids){
 		my $process = `ps -u cvmfs-test -p $_ | grep $_`;
@@ -92,6 +92,7 @@ sub kill_process {
 }
 
 sub jobs {
+	# Retrieving all process owned by user cvmfs-test
 	my @process = `ps -u cvmfs-test -o pid,args | grep -v defunct | grep -v cvmfs-test`;
 	
 	foreach (@process) {

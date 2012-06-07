@@ -17,6 +17,12 @@ unless ($socket_started) {
 while(1) {
 	my $line = receive_msg();
 	
+	# If $line is a log about the sender, print it and go again to listen
+	if ($line =~ m/Receiving connection from/) {
+	    print $line;
+	    next;
+	}
+	
 	# Deleting return at the end of the line
 	chomp($line);
 

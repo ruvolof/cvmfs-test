@@ -20,6 +20,7 @@ my $socket_path = 'ipc:///tmp/server.ipc';
 # Variables shared among all functions
 my $ctxt;
 my $socket;
+my $sender = undef;
 
 # Starting the daemon socket
 sub start_socket {
@@ -40,16 +41,36 @@ sub start_socket {
 sub receive_msg {
 	my $msg = ZeroMQ::Raw::zmq_recv($socket);
 	my $line = ZeroMQ::Raw::zmq_msg_data($msg) || die "Couldn't retrieve pointer to data: $!\n";
-	
-	return $line;
+
+	my @check = split /[[:blank:]]/, $line;
+	if (scalar(@check) == 1 and $check[0] eq uc($check[0])){
+		$sender = $line;
+		return "Receiving connection from $sender.\n";
+	}
+	else {
+		return $line;
+	}
+}
+
+# Select the recipient socket
+sub select_recipient {
+	ZeroMQ::Raw::zmq_send($socket, $sender, ZMQ_SNDMORE);
+
+	# Undefining $sender to avoid multiple use of this function for the same message
+	$sender = undef;
 }
 
 # Send a message
 sub send_msg {
 	# Retrieve message
 	my $msg = shift;
+
+	# If $sender is not undef, sending the first part of output with socket identity
+	if (defined($sender)){
+		select_recipient();
+	}
 	
-	ZeroMQ::Raw::zmq_send($socket, $msg);
+	ZeroMQ::Raw::zmq_send($socket, $msg, ZMQ_SNDMORE);
 }
 
 # End message. Use this functions to tell the shell that no more output will arrive.

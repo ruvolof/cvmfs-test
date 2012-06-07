@@ -1,8 +1,10 @@
 use strict;
 use warnings;
+use Archive::Tar;
 use Archive::Extract;
 use ZeroMQ qw/:all/;
 use File::Copy;
+use Sudo;
 
 use FindBin qw($Bin);
 
@@ -11,6 +13,7 @@ my $repo_pub = $tmp_repo . 'pub';
 my $outputfile = '/var/log/cvmfs-test/faulty_proxy.out';
 my $errorfile = '/var/log/cvmfs-test/faulty_proxy.err';
 my $socket_path = 'ipc:///tmp/server.ipc';
+my $testname = 'FAULTY_PROXY';
 
 sub get_daemon_output {
 	my $socket = shift;
@@ -42,7 +45,7 @@ if (defined ($pid) and $pid == 0) {
 	print "Opening the socket to communicate with the server... \n";
 	my $ctxt = ZeroMQ::Context->new();
 	my $socket = $ctxt->socket(ZMQ_DEALER);
-	my $setopt = $socket->setsockopt(ZMQ_IDENTITY, 'TEST');
+	my $setopt = $socket->setsockopt(ZMQ_IDENTITY, $testname);
 	$socket->connect( $socket_path );
 	
 	print "Starting services for test... \n";
@@ -69,18 +72,18 @@ if (defined ($pid) and $pid == 0) {
                    sudo         => '/usr/bin/sudo',                              
                    program      => "$Bin/config_cvmfs.sh"
                   }
-    );
-    my $sudo = su->sudo_run();
-    print "Done.\n";
+	);
+	my $sudo = su->sudo_run();
+	print "Done.\n";
+	
+	print 'Creating RSA key... ';
+	system("$Bin/creating_rsa.sh");
+	print "Done.\n";
     
-    print 'Creating RSA key... ';
-    system("$Bin/creating_rsa.sh");
-    print "Done.\n";
-    
-    print 'Signing files... ';
-    my @files_to_sign;
-    my $select = sub {
-		if ($File::Find::name =~ m/\.cvmfspublished/){
+	print 'Signing files... ';
+	my @files_to_sign;
+	my $select = sub {
+	if ($File::Find::name =~ m/\.cvmfspublished/){
 			push @files_to_sign,$File::Find::name;
 		}
 	};
@@ -98,7 +101,7 @@ if (defined ($pid) and $pid == 0) {
 }
 
 if (defined ($pid) and $pid != 0) {
-	print "faulty_proxy test started.\n";
+	print "FAULTY_PROXY test started.\n";
 	print "You can read its output in $outputfile.\n";
 	print "Errors are stored in $errorfile.\n";
 }

@@ -7,7 +7,7 @@ package Functions::Testd;
 
 use strict;
 use warnings;
-use Functions::ServerSocket qw(send_msg close_socket term_ctxt);
+use Functions::ServerSocket qw(send_msg close_socket term_ctxt end_msg);
 
 # Next lines are needed to export subroutine to the main package
 use base 'Exporter';
@@ -72,7 +72,7 @@ sub stop_daemon {
 	# Printing to the FIFO the last log. 
 	send_msg("Daemon stopped.\n");
 	send_msg("DAEMON_STOPPED\n");
-	send_msg("END\n");
+	end_msg();
 	
 	# Removing the FIFO. Do it only when you're sure you don't have any more output to send.
 	remove_socket($ctxt, $socket);
