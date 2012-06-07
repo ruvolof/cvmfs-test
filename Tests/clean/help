@@ -1,0 +1,14 @@
+Short:  clean		Clean the environment for a new test.
+
+clean:
+clean:clean
+clean:	Clean the environment for a new test.
+clean:	Usage: clean
+clean:
+clean:	This command will:
+clean:	  1) Erase all previous RSA key generated for tests.
+clean:	  2) Erase all configuration files for cvmfs created for other tests.
+clean:	  3) Erase all fake files created for other tests.
+clean:	  4) Restart the cvmfs service.
+clean:	  5) Kill all processes currently running for cvmfs-test user.
+clean:

@@ -10,7 +10,9 @@ Short:Shell and daemon commands:
 Short:  help (h)	Print this help and exit.
 Short:  exit (q)	Exit from the shell.
 Short:  jobs		Show info about running processes.
-Short:  kill PID	Send TERM signal to PID.
+Short:  kill PIDLIST	Send TERM signal to PIDLIST. PIDLIST must be a space
+Short:		separated list of PID.
+Short:  killall	Kill all child process.
 Short:  fixperm	Fix permission for files and directories.
 Short:  restart	Restart the daemon.
 Short:  setup		Setup the environment for the daemon.

@@ -18,8 +18,8 @@ use vars qw/ @EXPORT_OK /;
 my $socket_path = 'ipc:///tmp/server.ipc';
 
 # Variables shared among all functions
-my $ctxt;
-my $socket;
+my $ctxt = undef;
+my $socket = undef;
 
 # Starting the shell socket
 sub start_shell_socket {
@@ -55,12 +55,18 @@ sub send_shell_msg {
 
 # Close the socket
 sub close_shell_socket {
-	ZeroMQ::Raw::zmq_close($socket);
+	if (defined($socket)) {
+		ZeroMQ::Raw::zmq_close($socket);
+		$socket = undef;
+	}
 }
 
 # Term ZeroMQ context
 sub term_shell_ctxt {
-	ZeroMQ::Raw::zmq_term($ctxt);
+	if (defined($ctxt)) {
+		ZeroMQ::Raw::zmq_term($ctxt);
+		$ctxt = undef;
+	}
 }
 
 1;

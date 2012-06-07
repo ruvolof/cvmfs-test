@@ -8,6 +8,7 @@ package Functions::Testd;
 use strict;
 use warnings;
 use Functions::ServerSocket qw(send_msg close_socket term_ctxt end_msg);
+use Scalar::Util qw(looks_like_number);
 
 # Next lines are needed to export subroutine to the main package
 use base 'Exporter';
@@ -33,8 +34,16 @@ sub killing_child {
 	
 	# Retrieving pids from the process list
 	foreach (@process) {
-		my $pid = (split /[[:blank:]]/, $_)[0];
-		push @pids,$pid;
+		my @pid = (split /[[:blank:]]/, $_);
+
+		# I found that in some system the same command has a space before the pid
+		# I'm looking which one between the first two fields looks like a number.
+		if (looks_like_number($pid[0])){
+		    push @pids,$pid[0];
+		}
+		else {
+		    push @pids,$pid[1];
+		}
 	}
 	
 	my ($cnt, $success);

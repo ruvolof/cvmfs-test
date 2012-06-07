@@ -9,6 +9,7 @@ use warnings;
 use File::Find;
 use Proc::Spawn;
 use Functions::ServerSocket qw(send_msg);
+use Scalar::Util qw(looks_like_number);
 
 # The next line is here to help me find the directory of the script
 # if you have a better method, let me know.
@@ -17,7 +18,7 @@ use FindBin qw($Bin);
 # This code is needed to export the functions in the main package
 use base 'Exporter';
 use vars qw/ @EXPORT_OK /;
-@EXPORT_OK = qw{ launch kill_process jobs };
+@EXPORT_OK = qw{ launch kill_process jobs killall };
 
 # This function will be launched everytime a command is invoked from the shell. It will
 # search recursively from $Bin for a main.pl file inside a folder named as the requested command.
@@ -97,6 +98,52 @@ sub jobs {
 	
 	foreach (@process) {
 		send_msg($_);
+	}
+}
+
+# This function will retrieve the list of child processes that belong to cvmfs-test user
+# and will kill everyone of them. It's a rewrite from Functions::Testd::killing_child that
+# sends its output to the shell or plugin.
+sub killall {
+	# Retrieving the list of processes
+	my @process = `ps -u cvmfs-test -o pid,args | grep -v defunct | grep -v cvmfs-test | grep -v PID`;
+	
+	# Array to store all pids
+	my @pids;
+	
+	# Retrieving pids from the process list
+	foreach (@process) {
+		my @pid = (split /[[:blank:]]/, $_);
+		
+		# I found that on some system, the same commands has a space before the pid.
+		# I'm going to look which one looks like a number between the first two field.
+		if (looks_like_number($pid[0])) {
+			push @pids,$pid[0];
+		}
+		else {
+			push @pids,$pid[1];
+		}
+	}
+	
+	my ($cnt, $success);
+	foreach(@pids){
+		my $process = `ps -u cvmfs-test -p $_ | grep $_`;
+		if ($process) {
+			$cnt = kill 0, $_;
+			if ($cnt > 0) {
+				send_msg("Sending TERM signal to process $_ ... ");
+				$success = kill 15, $_;
+			}
+			if ( defined($success) and $success > 0) {
+				send_msg("Process terminated.\n");
+			}
+			else {
+				send_msg("Impossible to terminate the process $_\n");
+			}
+		}
+		else {
+			send_msg("No process with PID $_\n");
+		}
 	}
 }
 

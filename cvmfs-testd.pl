@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use IO::Handle;
 use Functions::Help qw(help);
-use Functions::Launcher qw(launch kill_process jobs);
+use Functions::Launcher qw(launch kill_process jobs killall);
 use Functions::Testd qw(stop_daemon);
 use Functions::ServerSocket qw(start_socket receive_msg end_msg);
 
@@ -46,6 +46,9 @@ while(1) {
 		
 		# Here is the KILL case
 		elsif($_ eq 'kill') { kill_process(@options) }
+		
+		# Here is the KILLALL case
+		elsif($_ eq 'killall') { killall() }
 		
 		# Here is the JOBS case
 		elsif ($_ eq 'jobs') { jobs() }
