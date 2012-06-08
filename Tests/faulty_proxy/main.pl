@@ -1,11 +1,10 @@
 use strict;
 use warnings;
-use Archive::Extract;
 use ZeroMQ qw/:all/;
+use File::Path qw(make_path);
+use File::Find;
 use File::Copy;
 use Getopt::Long;
-use Sudo;
-
 use FindBin qw($Bin);
 
 my $tmp_repo = '/tmp/server/repo/';
@@ -29,17 +28,17 @@ sub get_daemon_output {
 
 # Retrieving command line options
 my $ret = GetOptions ( "stdout=s" => \$outputfile,
-		       "stderr=s" => \$errorfile,
-		       "no-clean" => \$no_clean );
+					   "stderr=s" => \$errorfile,
+					   "no-clean" => \$no_clean );
 
 # Forking the process. Only some little line of output will be sent back to the daemon.
-my $pid = 0; #fork();
+my $pid = fork();
 
 if (defined ($pid) and $pid == 0) {
-	#open (my $errfh, '>', $errorfile) || die "Couldn't open $errorfile: $!\n";
-	#STDERR->fdopen ( \*$errfh, 'w' ) || die "Couldn't set STDERR to $errorfile: $!\n";
-	#open (my $outfh, '>', $outputfile) || die "Couldn't open $outputfile: $!\n";
-	#STDOUT->fdopen( \*$outfh, 'w' ) || die "Couldn't set STDOUT to $outputfile: $!\n";
+	open (my $errfh, '>', $errorfile) || die "Couldn't open $errorfile: $!\n";
+	STDERR->fdopen ( \*$errfh, 'w' ) || die "Couldn't set STDERR to $errorfile: $!\n";
+	open (my $outfh, '>', $outputfile) || die "Couldn't open $outputfile: $!\n";
+	STDOUT->fdopen( \*$outfh, 'w' ) || die "Couldn't set STDOUT to $outputfile: $!\n";
 
 	print 'Opening the socket to communicate with the server... ';
 	my $ctxt = ZeroMQ::Context->new();
@@ -50,29 +49,28 @@ if (defined ($pid) and $pid == 0) {
 
 	# Cleaning the environment if --no-clean is undef
 	if (!defined($no_clean)) {
-		print "Cleaning the environment:\n";
+		print "\nCleaning the environment:\n";
 		$socket->send("clean");
 		get_daemon_output($socket);
 		sleep 5;
 	}
 	else {
-		print "Skipping cleaning.\n";
+		print "\nSkipping cleaning.\n";
 	}
 	
 	print "Creating directory $tmp_repo... ";
-	mkdir $tmp_repo;
+	make_path($tmp_repo);
 	print "Done.\n";
 
 	print "Extracting the repository... ";
-	my $ae = Archive::Extract->new( archive => "$Bin/repo/pub.tar.gz", type => 'tgz' );
-	my $ae_ok = $ae->extract( to => $tmp_repo ) or die $ae->error;
+	system("tar -xzf $Bin/repo/pub.tar.gz -C $tmp_repo");
 	print "Done.\n";
 	
 	print "Starting services for test... \n";
-	$socket->send("httpd --root $repo_pub --port 8080");
+	$socket->send("httpd --root $repo_pub --index-of --port 8080");
 	get_daemon_output($socket);
 	sleep 5;
-	$socket->send("httpd --root $repo_pub --port 8081 --timeout");
+	$socket->send("httpd --root $repo_pub --index-of --port 8081 --timeout");
 	get_daemon_output($socket);
 	sleep 5;
 	$socket->send("webproxy --port 3128 --deliver-crap --fail all");
@@ -87,15 +85,7 @@ if (defined ($pid) and $pid == 0) {
 	print "All services started.\n";
 	
 	print 'Configuring cvmfs... ';
-	my $su = Sudo->new(
-                  {
-                   sudo         => '/usr/bin/sudo',
-		   username => 'root',
-		   program => '/usr/bin/sh',
-                   program_args      => "$Bin/config_cvmfs.sh"
-                  }
-	);
-	my $sudo = su->sudo_run();
+	system("sudo $Bin/config_cvmfs.sh");
 	print "Done.\n";
 	
 	print 'Creating RSA key... ';
@@ -112,13 +102,14 @@ if (defined ($pid) and $pid == 0) {
 	find( { wanted => $select }, $repo_pub );
 	foreach (@files_to_sign) {
 		copy($_,"$_.unsigned");
-		system("$Bin/cvmfs_sign-linux32 -c /tmp/cvmfs_test.crt -k /tmp/cvmfs_test.key -n 127.0.0.1 $_");		
+		system("$Bin/cvmfs_sign-linux32.crun -c /tmp/cvmfs_test.crt -k /tmp/cvmfs_test.key -n 127.0.0.1 $_");		
 	}
-	copy("tmp/whitelist.test.signed", "$repo_pub/catalogs/.cvmfswhitelist");
+	copy('/tmp/whitelist.test.signed', "$repo_pub/catalogs/.cvmfswhitelist");
 	print "Done.\n";
 	
 	print 'Configurin RSA key... ';
 	system("$Bin/configuring_rsa.sh");
+	copy('/tmp/whitelist.test.signed', "$repo_pub/catalogs/.cvmfswhitelist");
 	print "Done.\n";
 }
 

@@ -87,6 +87,7 @@ sub stop_daemon {
 	remove_socket($ctxt, $socket);
 	
 	print "Daemon stopped.\n";
+	STDOUT->flush();
 	exit 0;
 }
 

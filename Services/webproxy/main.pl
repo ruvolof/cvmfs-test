@@ -12,8 +12,9 @@ my $forbidden = undef;
 my $deliver_crap = undef;
 my $fail_at;
 our $backend = undef;
-my $outputfile = '/var/log/cvmfs-test/webproxy.output';
-my $errorfile = '/var/log/cvmfs-test/webproxy.error';
+my $outputfile = '/var/log/cvmfs-test/webproxy.out';
+my $errorfile = '/var/log/cvmfs-test/webproxy.err';
+my $logfile = '/var/log/cvmfs-test/webproxy.log';
 my $body = \$Filters::Filter403::body;
 my $header = \$Filters::Filter403::header;
 
@@ -38,7 +39,7 @@ if (defined ($deliver_crap)) {
 }
 
 # Opening file for log
-open (LOG, '>>', $outputfile);
+open (LOG, '>>', $logfile);
 
 my $proxy = HTTP::Proxy->new;
 $proxy->port( $port );
@@ -75,6 +76,8 @@ my $pid = fork();
 if ( defined($pid) and $pid == 0 ) {
 	open (my $errfh, '>', $errorfile);
 	STDERR->fdopen( \*$errfh, 'w' ) || die "Couldn't set STDERR to $errorfile: $!\n";
+	open (my $outfh, '>', $outputfile);
+	STDOUT->fdopen( \*$outfh, 'w' ) || die "Couldn't set STDOUT to $outputfile: $!\n";
 	$proxy->start;
 }
 

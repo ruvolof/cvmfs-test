@@ -1,5 +1,5 @@
-/sbin/service cvmfs start
-/sbin/service cvmfs restartclean
-/sbin/service autofs stop
+/etc/init.d/cvmfs start
+/etc/init.d/cvmfs restartclean
+/etc/init.d/autofs stop
 killall -9 automount
-/sbin/service autofs start
+/etc/init.d/autofs start

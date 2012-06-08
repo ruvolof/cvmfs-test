@@ -11,4 +11,3 @@ openssl genrsa -out /tmp/cvmfs_master.key 2048
 openssl rsa -in /tmp/cvmfs_master.key -pubout -out /tmp/cvmfs_master.pub
 openssl rsautl -inkey /tmp/cvmfs_master.key -sign -in /tmp/whitelist.test.sha1 -out /tmp/whitelist.test.signature
 cat /tmp/whitelist.test.signature >> /tmp/whitelist.test.signed
-cp /tmp/whitelist.test.signed server/pub/catalogs/.cvmfswhitelist 

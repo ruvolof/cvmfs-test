@@ -106,43 +106,49 @@ sub jobs {
 # sends its output to the shell or plugin.
 sub killall {
 	# Retrieving the list of processes
-	my @process = `ps -u cvmfs-test -o pid,args | grep -v defunct | grep -v cvmfs-test | grep -v PID`;
+	my @process = `ps -u cvmfs-test -o pid,args | grep -v defunct | grep Services | grep -v PID`;
 	
-	# Array to store all pids
-	my @pids;
-	
-	# Retrieving pids from the process list
-	foreach (@process) {
-		my @pid = (split /[[:blank:]]/, $_);
-		
-		# I found that on some system, the same commands has a space before the pid.
-		# I'm going to look which one looks like a number between the first two field.
-		if (looks_like_number($pid[0])) {
-			push @pids,$pid[0];
-		}
-		else {
-			push @pids,$pid[1];
-		}
+	# Checking that some processes are still running.
+	if (scalar(@process) < 1) {
+		send_msg("No running process found.\n");
 	}
-	
-	my ($cnt, $success);
-	foreach(@pids){
-		my $process = `ps -u cvmfs-test -p $_ | grep $_`;
-		if ($process) {
-			$cnt = kill 0, $_;
-			if ($cnt > 0) {
-				send_msg("Sending TERM signal to process $_ ... ");
-				$success = kill 15, $_;
-			}
-			if ( defined($success) and $success > 0) {
-				send_msg("Process terminated.\n");
+	else {
+		# Array to store all pids
+		my @pids;
+		
+		# Retrieving pids from the process list
+		foreach (@process) {
+			my @pid = (split /[[:blank:]]/, $_);
+			
+			# I found that on some system, the same commands has a space before the pid.
+			# I'm going to look which one looks like a number between the first two field.
+			if (looks_like_number($pid[0])) {
+				push @pids,$pid[0];
 			}
 			else {
-				send_msg("Impossible to terminate the process $_\n");
+				push @pids,$pid[1];
 			}
 		}
-		else {
-			send_msg("No process with PID $_\n");
+		
+		my ($cnt, $success);
+		foreach(@pids){
+			my $process = `ps -u cvmfs-test -p $_ | grep $_`;
+			if ($process) {
+				$cnt = kill 0, $_;
+				if ($cnt > 0) {
+					send_msg("Sending TERM signal to process $_ ... ");
+					$success = kill 15, $_;
+				}
+				if ( defined($success) and $success > 0) {
+					send_msg("Process terminated.\n");
+				}
+				else {
+					send_msg("Impossible to terminate the process $_\n");
+				}
+			}
+			else {
+				send_msg("No process with PID $_\n");
+			}
 		}
 	}
 }

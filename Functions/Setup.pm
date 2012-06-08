@@ -157,8 +157,16 @@ sub fixperm {
 	system("find -type f -name \"*help\" -exec chmod 644 {} +");
 	print "Done.\n";
 	
-	print 'Setting permission for bash script to 755...';
+	print 'Setting permission for bash script to 755... ';
 	system("find -type f -name \"*.sh\" -exec chmod 755 {} +");
+	print "Done.\n";
+
+	print 'Setting permission for archives to 777... ';
+	system("find -type f -name \"*.tar.gz\" -exec chmod 777 {} +");
+	print "Done.\n";
+
+	print 'Setting permission for C executable files to 755... ';
+	system("find -type f -name \"*.crun\" -exec chmod 755 {} +");
 	print "Done.\n";
 }
 
