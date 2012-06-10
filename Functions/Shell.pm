@@ -171,7 +171,7 @@ sub start_daemon {
 				print "Done.\n";
 			}
 			else {
-				print "Failed.\n Have a look to $daemon_error.\n";
+				print "Failed.\nHave a look to $daemon_error.\n";
 			}
 			
 			# Opening the socket to communicate with the server

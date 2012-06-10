@@ -67,10 +67,10 @@ if (defined ($pid) and $pid == 0) {
 	print "Done.\n";
 	
 	print "Starting services for test... \n";
-	$socket->send("httpd --root $repo_pub --index-of --port 8080");
+	$socket->send("httpd --root $repo_pub --index-of --all --port 8080");
 	get_daemon_output($socket);
 	sleep 5;
-	$socket->send("httpd --root $repo_pub --index-of --port 8081 --timeout");
+	$socket->send("httpd --root $repo_pub --index-of --all --port 8081 --timeout");
 	get_daemon_output($socket);
 	sleep 5;
 	$socket->send("webproxy --port 3128 --deliver-crap --fail all");

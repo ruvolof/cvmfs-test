@@ -82,12 +82,18 @@ sub end_msg {
 
 # Close the socket
 sub close_socket {
-	ZeroMQ::Raw::zmq_close($socket);
+	my $socket_closed = ZeroMQ::Raw::zmq_close($socket);
+	if ($socket_closed == -1) {
+		die "Unable to close the socket: $!.\n";
+	}
 }
 
 # Term ZeroMQ context
 sub term_ctxt {
-	ZeroMQ::Raw::zmq_term($ctxt);
+	my $ctxt_closed = ZeroMQ::Raw::zmq_term($ctxt);
+	if ($ctxt_closed == -1) {
+		die "Unable to term ZeroMQ context: $!.\n";
+	}
 }
 
 1;
