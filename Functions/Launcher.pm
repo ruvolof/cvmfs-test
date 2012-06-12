@@ -106,7 +106,7 @@ sub jobs {
 # sends its output to the shell or plugin.
 sub killall {
 	# Retrieving the list of processes
-	my @process = `ps -u cvmfs-test -o pid,args | grep -v defunct | grep Services | grep -v PID`;
+	my @process = `ps -u cvmfs-test -o pid,args | grep -v defunct | grep Services | grep -v PID | grep -v grep`;
 	
 	# Checking that some processes are still running.
 	if (scalar(@process) < 1) {

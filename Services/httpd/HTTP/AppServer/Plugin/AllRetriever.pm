@@ -56,7 +56,10 @@ sub _handle_file
 		$mimetype = mimetype($filename);
 		my $fh = IO::File->new('< '.$filename);
 		print "HTTP/1.0 200 Ok\r\n";
-		print $cgi->header($mimetype);
+		print $cgi->header(
+							-type => $mimetype,
+							-Content_length => -s $filename
+						  );
 		print join '', <$fh>;		
 	}
 	else {

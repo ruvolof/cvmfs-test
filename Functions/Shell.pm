@@ -119,11 +119,11 @@ sub get_daemon_output {
 		$reply = receive_shell_msg();
 		# Closing shell socket if it receives DAEMON_STOPPED signal
 		if ($reply eq "DAEMON_STOPPED\n") { 
-			close_shell_socket(); 
+			close_shell_socket();
 			term_shell_ctxt();
 			# Setting $reply to END to terminate to wait output
 			$reply = "END\n";
-			sleep 1;
+			sleep 3;
 		}
 		print $reply if $reply ne "END\n";
 	}

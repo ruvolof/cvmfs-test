@@ -27,6 +27,8 @@ my $sender = undef;
 sub start_socket {
 	$ctxt = ZeroMQ::Raw::zmq_init(5) || die "Couldn't initialise ZeroMQ context.\n";
 	$socket = ZeroMQ::Raw::zmq_socket($ctxt, ZMQ_ROUTER) || die "Couldn't create socket.\n";
+	ZeroMQ::Raw::zmq_setsockopt($socket, ZMQ_LINGER, 0);
+	
 
 	my $rc = ZeroMQ::Raw::zmq_bind( $socket, "${socket_protocol}${socket_path}" );
 	system("chmod 777 $socket_path");
@@ -57,6 +59,7 @@ sub receive_msg {
 # Select the recipient socket
 sub select_recipient {
 	ZeroMQ::Raw::zmq_send($socket, $sender, ZMQ_SNDMORE);
+	print "Sending message to $sender:\n";
 
 	# Undefining $sender to avoid multiple use of this function for the same message
 	$sender = undef;
@@ -73,11 +76,14 @@ sub send_msg {
 	}
 	
 	ZeroMQ::Raw::zmq_send($socket, $msg, ZMQ_SNDMORE);
+	chomp($msg);
+	print "MSG: \"$msg\" sent.\n";
 }
 
 # End message. Use this functions to tell the shell that no more output will arrive.
 sub end_msg {
 	ZeroMQ::Raw::zmq_send($socket, "END\n");
+	print "MSG: \"END\" sent.\n";
 }
 
 # Close the socket

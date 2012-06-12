@@ -27,7 +27,7 @@ sub remove_socket {
 # This function will kill all remaining process that were started by the daemon
 sub killing_child {
 	# Retrieving the list of processes
-	my @process = `ps -u cvmfs-test -o pid,args | grep -v defunct | grep -v cvmfs-test | grep -v PID`;
+	my @process = `ps -u cvmfs-test -o pid,args | grep -v defunct | grep -v cvmfs-test | grep -v PID | grep -v grep`;
 	
 	# Array to store all pids
 	my @pids;
@@ -70,11 +70,7 @@ sub killing_child {
 
 # This functions is called when the daemon gets the 'stop' command. It launches
 # some cleaning functions and exit.
-sub stop_daemon {
-	# Retrieving ZeroMQ context and socket handler
-	my $ctxt = shift;
-	my $socket = shift;
-	
+sub stop_daemon {	
 	# Killing all remaining process
 	killing_child();
 	
@@ -83,8 +79,8 @@ sub stop_daemon {
 	send_msg("DAEMON_STOPPED\n");
 	end_msg();
 	
-	# Removing the FIFO. Do it only when you're sure you don't have any more output to send.
-	remove_socket($ctxt, $socket);
+	# Removing the socket. Do it only when you're sure you don't have any more output to send.
+	remove_socket();
 	
 	print "Daemon stopped.\n";
 	STDOUT->flush();

@@ -26,7 +26,7 @@ while(1) {
 	# Deleting return at the end of the line
 	chomp($line);
 
-	print "Processing command: $line... ";
+	print "Processing command: $line...\n";
 	
 	# Splitting $line in an array depending on blank...
 	my @words = split /[[:blank:]]/, $line;
@@ -56,12 +56,12 @@ while(1) {
 		# The default case will try to launch the appropriate plugin
 		else { launch($command, @options) }
 	}
-		
-	# Logging the end of processing
-	print "Done.\n";
 	
 	# Sending to the shell a signal to terminate output
 	end_msg();
+	
+	# Logging the end of processing
+	print "Done.\n";
 	
 	STDOUT->flush;
 }
