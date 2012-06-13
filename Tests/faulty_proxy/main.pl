@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use ZeroMQ qw/:all/;
 use Functions::File qw(recursive_mkdir);
+use Functions::FIFOHandle qw(open_wfifo close_fifo);
 use File::Find;
 use File::Copy;
 use Getopt::Long;
@@ -16,7 +17,10 @@ my $testname = 'FAULTY_PROXY';
 my $no_clean = undef;
 
 # Variables used to record tests result
-my ($proxy_crap, $server_timeout, $mount_successful);
+my ($proxy_crap, $server_timeout, $mount_successful) = (1, 1, 1);
+
+# Array to store PID of services.
+my @pids;
 
 # This functions will wait for output from the daemon
 sub get_daemon_output {
@@ -25,8 +29,27 @@ sub get_daemon_output {
 	while ($data ne "END\n") {
 		$reply = $socket->recv();
 		$data = $reply->data;
-		print $data if $data ne "END\n";
+		if ($data =~ m/SAVE_PID/) {
+		    my $pid = (split /:/, $data)[-1];
+		    push @pids,$pid;
+		}
+		print $data if $data ne "END\n" and $data !~ m/SAVE_PID/;
 	}
+}
+
+# This function will kill all services started, so it can start new processes on the same ports
+sub killing_services {
+	# Retrieving socket handler
+	my $socket = shift;
+	print 'Killing services... ';
+	foreach (@pids) {
+		chomp($_);
+	}
+	my $pid_list = join (' ', @pids);
+	undef @pids;
+	$socket->send("kill $pid_list");
+	get_daemon_output($socket);
+	print "Done.\n";
 }
 
 # Retrieving command line options
@@ -102,31 +125,108 @@ if (defined ($pid) and $pid == 0) {
 	print $faultyfh 'A'x1024x10;
 	print "Done.\n";
 	
-	print "Starting services to test... \n";
+	print '-'x30;
+	print "Starting services for mount_successfull test... \n";
 	$socket->send("httpd --root $repo_pub --index-of --all --port 8080");
 	get_daemon_output($socket);
 	sleep 5;
-	$socket->send("httpd --root $repo_pub --index-of --all --port 8081 --timeout");
+	$socket->send("webproxy --port 3128 --backend http://localhost:8080");
+	get_daemon_output($socket);
+	sleep 5;	
+	print "Services started.\n";
+
+	print "Trying to open and listing the directory...";
+	my $opened = opendir (my $dirfh, '/cvmfs/127.0.0.1');
+	unless ($opened){
+	    $mount_successful = 0;
+	}
+	my @files = readdir $dirfh;
+	unless (@files) {
+	    $mount_successful = 0;
+	}
+	closedir($dirfh);
+	print "Done.\n";
+
+	killing_services($socket);
+
+	print '-'x30;
+	print 'Starting services for proxy_crap test... ';
+	$socket->send("httpd --root $repo_pub --index-of --all --port 8080");
 	get_daemon_output($socket);
 	sleep 5;
 	$socket->send("webproxy --port 3128 --deliver-crap --fail all");
 	get_daemon_output($socket);
 	sleep 5;
-	$socket->send("webproxy --port 3129 --backend http://localhost:8080");
+	print "Done.\n";
+
+	print "Trying to open and listing the directory...";
+	$opened = opendir ($dirfh, '/cvmfs/127.0.0.1');
+	if ($opened){
+	    $proxy_crap = 0;
+	}
+	my @files_crap = readdir $dirfh;
+	if (@files_crap) {
+	    $proxy_crap = 0;
+	}
+	closedir($dirfh);
+	print "Done.\n";
+
+	killing_services($socket);
+	
+	print '-'x30;
+	print 'Starting services for server_timeout test... ';
+	$socket->send("httpd --root $repo_pub --index-of --all --port 8080 --timeout");
 	get_daemon_output($socket);
 	sleep 5;
-	$socket->send("webproxy --port 3130 --backend http://localhost:8081");
+	$socket->send("webproxy --port 3128 --backend http://localhost:8080");
 	get_daemon_output($socket);
 	sleep 5;
 	print "All services started.\n";
-	
-	
+
+	print "Trying to open and listing the directory...";
+	$opened = opendir ($dirfh, '/cvmfs/127.0.0.1');
+	if ($opened){
+	    $server_timeout = 0;
+	}
+	my @files_timeout = readdir $dirfh;
+	if (@files_timeout) {
+	    $server_timeout = 0;
+	}
+	closedir($dirfh);
+	print "Done.\n";
+
+	killing_services($socket);
+
+	print 'Sending status to the shell... ';
+	my $outputfifo = open_wfifo('/tmp/returncode.fifo');
+	if ($mount_successful == 1) {
+	    print $outputfifo "Able to mount the repo with right configuration... OK.\n";
+	}
+	else {
+	    print $outputfifo "Unable to mount the repo with right configuration... WRONG.\n";
+	}
+	if ($proxy_crap == 1) {
+	    print $outputfifo "Able to mount the repo with faulty proxy configuration... WRONG.\n";
+	}
+	else {
+	    print $outputfifo "Unable to mount the repo with faulty proxy configuration... OK.\n";
+	}
+	if ($server_timeout == 1) {
+	    print $outputfifo "Able to mount repo with server timeout configuration... WRONG.\n";
+	}
+	else {
+	    print $outputfifo "Unable to mount the repo with server timeout configuration... OK!\n";
+	}
+	close_fifo($outputfifo);
+	print "Done.\n";		
 }
 
 if (defined ($pid) and $pid != 0) {
 	print "FAULTY_PROXY test started.\n";
 	print "You can read its output in $outputfile.\n";
 	print "Errors are stored in $errorfile.\n";
+	print "PROCESSING:FAULTY_PROXY\n";
+	print "READ_RETURN_CODE\n";
 }
 
 exit 0;

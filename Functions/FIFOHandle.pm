@@ -7,11 +7,28 @@ package Functions::FIFOHandle;
 use strict;
 use warnings;
 use IO::Handle;
+use POSIX qw(mkfifo);
 
 # Next line are needed to export subroutines to the main package
 use base 'Exporter';
 use vars qw/ @EXPORT_OK /;
-@EXPORT_OK = qw(open_rfifo open_wfifo close_fifo print_to_fifo);
+@EXPORT_OK = qw(open_rfifo open_wfifo close_fifo print_to_fifo make_fifo unlink_fifo);
+
+# This function will create a new FIFO
+sub make_fifo {
+    my $fifo = shift;
+    if (-e $fifo) {
+	unlink($fifo);
+    }
+    mkfifo($fifo, 0777);
+    system("chmod 777 $fifo");
+}
+
+# This function will semply unlink any FIFO.
+sub unlink_fifo {
+    my $fifo = shift;
+    unlink($fifo);
+}
 
 # This function will open the FIFO for reading and will return his handler
 sub open_rfifo {

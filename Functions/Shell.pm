@@ -13,7 +13,7 @@ use Fcntl ':mode';
 use Getopt::Long;
 use Functions::Setup qw(setup fixperm);
 use Functions::ShellSocket qw(start_shell_socket send_shell_msg receive_shell_msg close_shell_socket term_shell_ctxt);
-use Functions::FIFOHandle qw(open_rfifo close_fifo);
+use Functions::FIFOHandle qw(open_rfifo close_fifo make_fifo unlink_fifo);
 
 # Next lines are needed to export subroutines to the main package
 use base 'Exporter';
@@ -131,11 +131,17 @@ sub get_daemon_output {
 			}
 			# This case if the daemon tell the shell to wait for PID to term
 			elsif ($_ =~ m/READ_RETURN_CODE/) {
-				my $return_fh = open_rfifo('/tmp/returncode');
+			    make_fifo('/tmp/returncode.fifo');
+				my $return_fh = open_rfifo('/tmp/returncode.fifo');
 				while (my $return_line = <$return_fh>) {
 					print $return_line;
 				}
 				close_fifo($return_fh);
+			    unlink_fifo('/tmp/returncode.fifo');
+				$processed = 2;
+			}
+			# Other cases with special signal that are useless for the shell
+			elsif ($_ =~ m/SAVE_PID/) {
 				$processed = 2;
 			}
 			# Setting $reply to END to terminate to wait output
@@ -147,7 +153,7 @@ sub get_daemon_output {
 				$reply = "NO_PRINT";
 			}
 		}
-		print $reply if $reply ne "END\n" and $reply ne "NO_PRINT" and $reply !~ m/SAVE_PID/;
+		print $reply if $reply ne "END\n" and $reply ne "NO_PRINT";
 	}
 }
 
