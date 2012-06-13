@@ -80,6 +80,7 @@ unless ($pid == 0){
 	print "DNS started on port $port with PID $pid.\n";
 	print "You can read its output in '$outputfile'.\n";
 	print "Errors are stored in '$errorfile'.\n";
+	print "SAVE_PID:$pid";
 }
 	
 exit 0;

@@ -80,6 +80,7 @@ unless ($pid == 0) {
 	print "It's serving the folder $docroot.\n";
 	print "You can read its output in '$outputfile'.\n";
 	print "Errors are stored in '$errorfile'.\n";
+	print "SAVE_PID:$pid\n";
 }
 
 exit 0;

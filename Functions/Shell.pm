@@ -13,6 +13,7 @@ use Fcntl ':mode';
 use Getopt::Long;
 use Functions::Setup qw(setup fixperm);
 use Functions::ShellSocket qw(start_shell_socket send_shell_msg receive_shell_msg close_shell_socket term_shell_ctxt);
+use Functions::FIFOHandle qw(open_rfifo close_fifo);
 
 # Next lines are needed to export subroutines to the main package
 use base 'Exporter';
@@ -117,15 +118,36 @@ sub get_daemon_output {
 	my $reply = '';
 	while ($reply ne "END\n") {
 		$reply = receive_shell_msg();
-		# Closing shell socket if it receives DAEMON_STOPPED signal
-		if ($reply eq "DAEMON_STOPPED\n") { 
-			close_shell_socket();
-			term_shell_ctxt();
+		# Switch on the value of $reply to catch any special sinagl from the daemon.
+		for ($reply) {
+			my $processed = 0;
+			# This case if the daemon has stopped itself
+			if ($_ =~ m/DAEMON_STOPPED/) { close_shell_socket(); term_shell_ctxt(); $processed = 1 }
+			elsif ($_ =~ m/PROCESSING/) {
+				my $process_name = (split /:/, $_)[-1];
+				chomp($process_name);
+				print "Processing $process_name... ";
+				$processed = 2;
+			}
+			# This case if the daemon tell the shell to wait for PID to term
+			elsif ($_ =~ m/READ_RETURN_CODE/) {
+				my $return_fh = open_rfifo('/tmp/returncode');
+				while (my $return_line = <$return_fh>) {
+					print $return_line;
+				}
+				close_fifo($return_fh);
+				$processed = 2;
+			}
 			# Setting $reply to END to terminate to wait output
-			$reply = "END\n";
-			sleep 3;
+			if ($processed == 1) {
+				$reply = "END\n";
+				sleep 3;
+			}
+			elsif ($processed == 2) {
+				$reply = "NO_PRINT";
+			}
 		}
-		print $reply if $reply ne "END\n";
+		print $reply if $reply ne "END\n" and $reply ne "NO_PRINT" and $reply !~ m/SAVE_PID/;
 	}
 }
 

@@ -85,6 +85,7 @@ if ( defined($pid) and $pid == 0 ) {
 unless ($pid == 0) {
 	print "Proxy HTTP started on port $port with PID $pid.\n";
 	print "You can read its output in $outputfile.\n";
+	print "SAVE_PID:$pid\n";
 }
 
 exit 0;
