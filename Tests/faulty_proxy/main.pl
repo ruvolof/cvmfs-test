@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 use ZeroMQ qw/:all/;
-use File::Path qw(make_path);
+use Functions::File qw(recursive_mkdir);
 use File::Find;
 use File::Copy;
 use Getopt::Long;
@@ -14,6 +14,9 @@ my $errorfile = '/var/log/cvmfs-test/faulty_proxy.err';
 my $socket_path = 'ipc:///tmp/server.ipc';
 my $testname = 'FAULTY_PROXY';
 my $no_clean = undef;
+
+# Variables used to record tests result
+my ($proxy_crap, $server_timeout, $mount_successful);
 
 # This functions will wait for output from the daemon
 sub get_daemon_output {
@@ -59,14 +62,47 @@ if (defined ($pid) and $pid == 0) {
 	}
 	
 	print "Creating directory $tmp_repo... ";
-	make_path($tmp_repo);
+	recursive_mkdir($tmp_repo);
 	print "Done.\n";
 
 	print "Extracting the repository... ";
 	system("tar -xzf $Bin/repo/pub.tar.gz -C $tmp_repo");
 	print "Done.\n";
 	
-	print "Starting services for test... \n";
+	print 'Creating RSA key... ';
+	system("$Bin/creating_rsa.sh");
+	print "Done.\n";
+	
+	print 'Signing files... ';
+	my @files_to_sign;
+	my $select = sub {
+	if ($File::Find::name =~ m/\.cvmfspublished/){
+			push @files_to_sign,$File::Find::name;
+		}
+	};
+	find( { wanted => $select }, $repo_pub );
+	foreach (@files_to_sign) {
+		copy($_,"$_.unsigned");
+		system("$Bin/cvmfs_sign-linux32.crun -c /tmp/cvmfs_test.crt -k /tmp/cvmfs_test.key -n 127.0.0.1 $_");		
+	}
+	copy('/tmp/whitelist.test.signed', "$repo_pub/catalogs/.cvmfswhitelist");
+	print "Done.\n";
+	
+	print 'Configurin RSA key for cvmfs... ';
+	system("$Bin/configuring_rsa.sh");
+	copy('/tmp/whitelist.test.signed', "$repo_pub/catalogs/.cvmfswhitelist");
+	print "Done.\n";
+	
+	print 'Configuring cvmfs... ';
+	system("sudo $Bin/config_cvmfs.sh");
+	print "Done.\n";
+	
+	print 'Creating faulty file... ';
+	open (my $faultyfh, '>', '/tmp/cvmfs.faulty') or die "Couldn't create /tmp/cvmfs.faulty: $!\n";
+	print $faultyfh 'A'x1024x10;
+	print "Done.\n";
+	
+	print "Starting services to test... \n";
 	$socket->send("httpd --root $repo_pub --index-of --all --port 8080");
 	get_daemon_output($socket);
 	sleep 5;
@@ -84,33 +120,7 @@ if (defined ($pid) and $pid == 0) {
 	sleep 5;
 	print "All services started.\n";
 	
-	print 'Configuring cvmfs... ';
-	system("sudo $Bin/config_cvmfs.sh");
-	print "Done.\n";
 	
-	print 'Creating RSA key... ';
-	system("$Bin/creating_rsa.sh");
-	print "Done.\n";
-    
-	print 'Signing files... ';
-	my @files_to_sign;
-	my $select = sub {
-	if ($File::Find::name =~ m/\.cvmfspublished/){
-			push @files_to_sign,$File::Find::name;
-		}
-	};
-	find( { wanted => $select }, $repo_pub );
-	foreach (@files_to_sign) {
-		copy($_,"$_.unsigned");
-		system("$Bin/cvmfs_sign-linux32.crun -c /tmp/cvmfs_test.crt -k /tmp/cvmfs_test.key -n 127.0.0.1 $_");		
-	}
-	copy('/tmp/whitelist.test.signed', "$repo_pub/catalogs/.cvmfswhitelist");
-	print "Done.\n";
-	
-	print 'Configurin RSA key... ';
-	system("$Bin/configuring_rsa.sh");
-	copy('/tmp/whitelist.test.signed', "$repo_pub/catalogs/.cvmfswhitelist");
-	print "Done.\n";
 }
 
 if (defined ($pid) and $pid != 0) {
