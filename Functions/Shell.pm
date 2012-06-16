@@ -120,6 +120,8 @@ sub get_daemon_output {
 		$reply = receive_shell_msg();
 		# Switch on the value of $reply to catch any special sinagl from the daemon.
 		for ($reply) {
+			# This variable will be used to record if the shell has got any special signal.
+			# Most of special signal will not be printed as output part.
 			my $processed = 0;
 			# This case if the daemon has stopped itself
 			if ($_ =~ m/DAEMON_STOPPED/) { close_shell_socket(); term_shell_ctxt(); $processed = 1 }
@@ -129,26 +131,32 @@ sub get_daemon_output {
 				print "Processing $process_name... ";
 				$processed = 2;
 			}
-			# This case if the daemon tell the shell to wait for PID to term
+			# This case if the daemon tell the shell to wait for PID to term.
 			elsif ($_ =~ m/READ_RETURN_CODE/) {
+				# Creating a FIFO. The shell will wait for some output there.
 			    make_fifo('/tmp/returncode.fifo');
 				my $return_fh = open_rfifo('/tmp/returncode.fifo');
-				while (my $return_line = <$return_fh>) {
+				#Be careful: this is blocking. Be sure to not send READ_RETURN_CODE signal to the shell
+				# if you are not going to write something in the FIFO. The shell will hang.
+				while (my $return_line = $return_fh->getline) {
 					print $return_line;
 				}
 				close_fifo($return_fh);
 			    unlink_fifo('/tmp/returncode.fifo');
 				$processed = 2;
 			}
-			# Other cases with special signal that are useless for the shell
+			# Other cases with special signal that are useless for the shell.
+			# SAVE_PID, by now, is useless for the shell, only tests have the need to
+			# remember wich services that have started.
 			elsif ($_ =~ m/SAVE_PID/) {
 				$processed = 2;
 			}
-			# Setting $reply to END to terminate to wait output
+			# Setting $reply to END to terminate to wait output.
 			if ($processed == 1) {
 				$reply = "END\n";
 				sleep 3;
 			}
+			# Setting $reply to NO_PRINT if we don't need to print the signal as output part.
 			elsif ($processed == 2) {
 				$reply = "NO_PRINT";
 			}

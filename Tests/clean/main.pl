@@ -6,8 +6,12 @@ use FindBin qw($Bin);
 my $socket_path = '/tmp/server.ipc';
 my $socket_protocol = 'ipc://';
 
-# This will be the name for the socket
+# This will be the name for the socket. This socket isn't supposed to receive any message.
+# But the server will still try to send them to it. When the server will realize, that this socket
+# isn't listening, the server will discard them.
 my $name = 'CLEAN';
+
+# Print statement are self explanatory.
 
 print 'Erasing RSA keys... ';
 system("sudo rm -f /tmp/cvmfs_test.key /tmp/cvmfs_test.csr /tmp/cvmfs_test.crt /tmp/whitelist.test.* /tmp/cvmfs_master.key /tmp/cvmfs_master.pub > /dev/null 2>&1");
@@ -29,7 +33,7 @@ print 'Restarting services... ';
 system("sudo $Bin/restarting_services.sh >> /dev/null 2>&1");
 print "Done.\n";
 
-# Opening the socket to launch 'killall' command
+# Opening the socket to launch 'killall' command.
 my $ctxt = ZeroMQ::Context->new();
 my $socket = $ctxt->socket(ZMQ_DEALER) || die "Couldn't create socket: $!.\n"; 
 $socket->setsockopt(ZMQ_IDENTITY, $name);
