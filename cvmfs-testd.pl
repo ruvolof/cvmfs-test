@@ -36,26 +36,29 @@ while(1) {
 	my @options = splice(@words, 0);
 	
 	# Switch on the value of command
-	for($command){
-		
-		# Here is the HELP case
-		if($_ eq 'help' or $_ eq 'h') { help($line) }
-		
-		# Here is the STOP case
-		elsif($_ eq 'stop') { stop_daemon() }
-		
-		# Here is the KILL case
-		elsif($_ eq 'kill') { kill_process(@options) }
-		
-		# Here is the KILLALL case
-		elsif($_ eq 'killall') { killall() }
-		
-		# Here is the JOBS case
-		elsif ($_ eq 'jobs') { jobs() }
-		
-		# The default case will try to launch the appropriate plugin
-		else { launch($command, @options) }
+	if (defined($command) and $command ne '') {
+		for($command){
+			
+			# Here is the HELP case
+			if($_ eq 'help' or $_ eq 'h') { help($line) }
+			
+			# Here is the STOP case
+			elsif($_ eq 'stop') { stop_daemon() }
+			
+			# Here is the KILL case
+			elsif($_ eq 'kill') { kill_process(@options) }
+			
+			# Here is the KILLALL case
+			elsif($_ eq 'killall') { killall() }
+			
+			# Here is the JOBS case
+			elsif ($_ eq 'jobs') { jobs() }
+			
+			# The default case will try to launch the appropriate plugin
+			else { launch($command, @options) }
+		}
 	}
+	
 	
 	# Sending to the shell a signal to terminate output
 	end_msg();

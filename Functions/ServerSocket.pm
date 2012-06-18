@@ -44,7 +44,10 @@ sub start_socket {
 # Receiving a message
 sub receive_msg {
 	my $msg = ZeroMQ::Raw::zmq_recv($socket);
-	my $line = ZeroMQ::Raw::zmq_msg_data($msg) || die "Couldn't retrieve pointer to data: $!\n";
+	my $line = ZeroMQ::Raw::zmq_msg_data($msg);
+	unless ($line) {
+		print "Couldn't retrieve pointer to data: $!\n";
+	}
 
 	my @check = split /[[:blank:]]/, $line;
 	if (scalar(@check) == 1 and $check[0] eq uc($check[0])){
@@ -82,6 +85,11 @@ sub send_msg {
 
 # End message. Use this functions to tell the shell that no more output will arrive.
 sub end_msg {
+	# If $sender is not undef, sending the first part of output with socket identity
+	if (defined($sender)){
+		select_recipient();
+	}
+	
 	ZeroMQ::Raw::zmq_send($socket, "END\n");
 	print "MSG: \"END\" sent.\n";
 }

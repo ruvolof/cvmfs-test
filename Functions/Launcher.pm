@@ -34,7 +34,7 @@ sub launch {
 	# Joining all options in a unique string
 	my $options = join(' ', @options);
 	
-	# Searching fot the script to be executed
+	# Searching for the script to be executed
 	my $mainfile;
 	my $select = sub {
 		if($File::Find::name =~ m/.*\/$test\/main\.pl$/){

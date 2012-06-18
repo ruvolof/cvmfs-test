@@ -44,6 +44,14 @@ while(1){
 		my $line = STDIN->getline;
 		chomp($line);
 		
+		# Checking again if the daemon is running, maybe something killed it.
+		unless (check_daemon) {
+			print "Daemon isn't running anymore. Check logs.\n";
+			close_shell_socket();
+			term_shell_ctxt();
+			next;
+		}
+		
 		# Checking if the command refer to the shell and not to the daemon
 		my $continue = check_command($line);
 		# If the command was already executed, passing to the next while cicle
