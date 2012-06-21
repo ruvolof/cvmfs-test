@@ -7,6 +7,8 @@ named:	Usage: named <options>
 named:
 named:	List of available options:
 named:	  --port PORT	Listen on port PORT. 5353 by default.
+named:	  --add HOST=IP	Will server IP to A request for HOST.
+named:			Multiple use allowed.
 named:	  --stdout FILE	Send output to FILE.
 named:			Default to /var/log/cvmfs-test/named.out.
 named:	  --stderr FILE	Send error to FILE.

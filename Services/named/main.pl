@@ -8,11 +8,13 @@ use IO::Handle;
 my $port = 5300;
 my $fixed = undef;
 my $timeout;
+my %added_url;
 my $outputfile = '/var/log/cvmfs-test/named.out';
 my $errorfile = '/var/log/cvmfs-test/named.err';
 
 my $ret = GetOptions ("port=i" => \$port,
 					  "fixed=s" => \$fixed,
+					  "add=s" => \%added_url,
 					  "timeout" => \$timeout,
 					  "stdout=s" => \$outputfile,
 					  "stderr=s" => \$errorfile );
@@ -29,7 +31,7 @@ sub reply_handler {
     print "Received query from $peerhost to ". $conn->{sockhost}. "\n";
     $query->print;
 
-    if ($qtype eq "A") {
+    if ( $qtype eq "A" and !exists $added_url{$qname} ) {
 		my $ip;
 		# If it is not set the fixed flag, the server will retrieve the correct ip, else...
 		if (!defined($fixed)){
@@ -45,6 +47,12 @@ sub reply_handler {
         push @ans, $rr;
         $rcode = "NOERROR";
     }
+    elsif ( exists $added_url{$qname} ) {
+		my ($ttl, $rdata) = (3600, "$added_url{$qname}");
+		my $rr = new Net::DNS::RR("$qname $ttl $qclass $qtype $rdata");
+        push @ans, $rr;
+        $rcode = "NOERROR";
+	}
     elsif( $qname eq "foo.example.com" ) {
         $rcode = "NOERROR";
     }
@@ -60,7 +68,7 @@ my $ns = new Net::DNS::Nameserver(
     LocalPort    => $port,
     ReplyHandler => \&reply_handler,
     Verbose      => 1
-    ) || die "couldn't create nameserver object\n";
+    ) || die "Couldn't create nameserver object: $!.\n";
 
 my $pid = fork();
 
@@ -71,8 +79,9 @@ if (defined ($pid) and $pid == 0){
 
 	open (my $outfh, '>', $outputfile ) || die "Couldn't open $outputfile: $!\n";
 	STDOUT->fdopen( \*$outfh, 'w' ) || die "Couldn't set STDOUT to $outputfile: $!\n";
-	$ns->main_loop;
 	
+	# Starting DNS
+	$ns->main_loop;	
 }
 
 # Command for the main script

@@ -30,7 +30,7 @@ system("sudo rm -f --recursive /tmp/server > /dev/null 2>&1");
 print "Done.\n";
 
 print 'Restarting services... ';
-system("sudo $Bin/restarting_services.sh >> /dev/null 2>&1");
+system("sudo Tests/Common/restarting_services.sh >> /dev/null 2>&1");
 print "Done.\n";
 
 # Opening the socket to launch 'killall' command.
