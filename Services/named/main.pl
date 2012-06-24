@@ -34,18 +34,16 @@ sub reply_handler {
     if ( $qtype eq "A" and !exists $added_url{$qname} ) {
 		my $ip;
 		# If it is not set the fixed flag, the server will retrieve the correct ip, else...
-		if (!defined($fixed)){
-			my $packed_ip = gethostbyname($qname);
-			$ip = inet_ntoa($packed_ip);
+		if (defined($fixed)){
+			$ip = $fixed;
+			my ($ttl, $rdata) = (3600, "$ip");
+        	my $rr = new Net::DNS::RR("$qname $ttl $qclass $qtype $rdata");
+	        push @ans, $rr;
+    	    $rcode = "NOERROR";
 		}
 		else {
-			# ... it will serve always the selected ip.
-			$ip = $fixed;
-		}
-        my ($ttl, $rdata) = (3600, "$ip");
-        my $rr = new Net::DNS::RR("$qname $ttl $qclass $qtype $rdata");
-        push @ans, $rr;
-        $rcode = "NOERROR";
+			$rcode = "NXDOMAIN";			
+		}   
     }
     elsif ( exists $added_url{$qname} ) {
 		my ($ttl, $rdata) = (3600, "$added_url{$qname}");
@@ -53,9 +51,6 @@ sub reply_handler {
         push @ans, $rr;
         $rcode = "NOERROR";
 	}
-    elsif( $qname eq "foo.example.com" ) {
-        $rcode = "NOERROR";
-    }
     else{
         $rcode = "NXDOMAIN";
     }

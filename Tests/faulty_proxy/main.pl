@@ -99,7 +99,7 @@ if (defined ($pid) and $pid == 0) {
 	print "Done.\n";
 	
 	print 'Configurin RSA key for cvmfs... ';
-	system("Tests/Common/configuring_rsa.sh");
+	system("Tests/Common/configuring_rsa.sh 127.0.0.1");
 	copy('/tmp/whitelist.test.signed', "$repo_pub/catalogs/.cvmfswhitelist");
 	print "Done.\n";
 	

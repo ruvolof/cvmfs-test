@@ -14,8 +14,8 @@ my $tmp_repo = '/tmp/server/repo/';
 my $repo_pub = $tmp_repo . 'pub';
 
 # Variables for GetOpt
-my $outputfile = '/var/log/cvmfs-test/faulty_proxy.out';
-my $errorfile = '/var/log/cvmfs-test/faulty_proxy.err';
+my $outputfile = '/var/log/cvmfs-test/dns_timeout.out';
+my $errorfile = '/var/log/cvmfs-test/dns_timeout.err';
 my $no_clean = undef;
 
 # Socket path and socket name. Socket name is set to let the server to select
@@ -100,7 +100,7 @@ if (defined ($pid) and $pid == 0) {
 	print "Done.\n";
 	
 	print 'Configurin RSA key for cvmfs... ';
-	system("Tests/Common/configuring_rsa.sh");
+	system("Tests/Common/configuring_rsa.sh mytestrepo.cern.ch");
 	copy('/tmp/whitelist.test.signed', "$repo_pub/catalogs/.cvmfswhitelist");
 	print "Done.\n";
 
@@ -110,19 +110,28 @@ if (defined ($pid) and $pid == 0) {
 	print "Done.\n";
 
 	print 'Overwriting resolv.conf... ';
-	system('sudo bash -c "echo \"[127.0.0.1]:5300\" > /etc/resolv.conf"');
+	system('sudo bash -c "echo \"\" > /etc/resolv.conf"');
+	print "Done.\n";
+	
+	print 'Creating iptables rules backup... ';
+	system('sudo /etc/init.d/iptables save > /dev/null 2>&1');
+	print "Done.\n";
+	
+	print 'Adding iptables rules... ';
+	system('sudo /sbin/iptables -t nat -A OUTPUT -p tcp --dport domain -j DNAT --to-destination 127.0.0.1:5300');
+	system('sudo /sbin/iptables -t nat -A OUTPUT -p udp --dport domain -j DNAT --to-destination 127.0.0.1:5300');
 	print "Done.\n";
 
 	print 'Configuring cvmfs... ';
 	system("sudo $Bin/config_cvmfs.sh");
 	print "Done.\n";
 	
-	print '-'x30 . "\n";
+	print '-'x30 . 'MOUNT_SUCCESSFUL' . '-'x30 . "\n";
 	print "Starting services for mount_successfull test...\n";
 	$socket->send("httpd --root $repo_pub --index-of --all --port 8080");
 	@pids = get_daemon_output($socket, @pids);
 	sleep 5;
-	$socket->send('webproxy --port 3128');
+	$socket->send('webproxy --port 3128 --backend http://mytestrepo.cern.ch:8080');
 	@pids = get_daemon_output($socket, @pids);
 	sleep 5;
 	$socket->send('named --port 5300 --add mytestrepo.cern.ch=127.0.0.1');
@@ -142,12 +151,12 @@ if (defined ($pid) and $pid == 0) {
 	system("sudo $Bin/restarting_services.sh >> /dev/null 2>&1");
 	print "Done.\n";
 
-	print '-'x30 . "\n";
+	print '-'x30 . 'PROXY_TIMEOUT' . '-'x30 . "\n";
 	print "Starting services for proxy_timeout test...\n";
 	$socket->send("httpd --root $repo_pub --index-of --all --port 8080");
 	@pids = get_daemon_output($socket, @pids);
 	sleep 5;
-	$socket->send('webproxy --port 3128');
+	$socket->send('webproxy --port 3128 --backend http://mytestrepo.cern.ch:8080');
 	@pids = get_daemon_output($socket, @pids);
 	sleep 5;
 	$socket->send('named --port 5300 --add mytestrepo.cern.ch=127.0.0.1 --timeout');
@@ -176,9 +185,6 @@ if (defined ($pid) and $pid == 0) {
 	$socket->send("httpd --root $repo_pub --index-of --all --port 8080");
 	@pids = get_daemon_output($socket, @pids);
 	sleep 5;
-	$socket->send('webproxy --port 3128');
-	@pids = get_daemon_output($socket, @pids);
-	sleep 5;
 	$socket->send('named --port 5300 --add mytestrepo.cern.ch=127.0.0.1 --timeout');
 	@pids = get_daemon_output($socket, @pids);
 	sleep 5;
@@ -194,6 +200,14 @@ if (defined ($pid) and $pid == 0) {
 
 	print 'Restarting services... ';
 	system("sudo $Bin/restarting_services.sh >> /dev/null 2>&1");
+	print "Done.\n";
+	
+	print 'Restoring resolv.conf backup... ';
+	system("sudo sh -c \"cp $resolv_temp /etc/resolv.conf\"");
+	print "Done.\n";
+	
+	print 'Restoring iptables rules... ';
+	system('sudo /etc/init.d/iptables restart > /dev/null 2>&1');
 	print "Done.\n";
 
 	# We're sending output to the shell through a FIFO.

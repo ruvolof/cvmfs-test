@@ -1,7 +1,7 @@
 openssl x509 -fingerprint -sha1 -in /tmp/cvmfs_test.crt | grep "SHA1 Fingerprint" | sed 's/SHA1 Fingerprint=//' > /tmp/whitelist.test.unsigned
 echo `date -u "+%Y%m%d%H%M%S"` > /tmp/whitelist.test.signed
 echo "E`date -u --date='next month' "+%Y%m%d%H%M%S"`" >> /tmp/whitelist.test.signed
-echo "N127.0.0.1" >> /tmp/whitelist.test.signed
+echo "N$1" >> /tmp/whitelist.test.signed
 cat /tmp/whitelist.test.unsigned >> /tmp/whitelist.test.signed
 sha1=`openssl sha1 < /tmp/whitelist.test.signed | tr -d " " | sed 's/(stdin)=//' | head -c40`
 echo "--" >> /tmp/whitelist.test.signed
