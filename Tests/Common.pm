@@ -6,10 +6,14 @@ package Tests::Common;
 
 use strict;
 use warnings;
+use Functions::File qw(recursive_mkdir);
+use File::Find;
+use File::Copy;
+use FindBin qw($Bin);
 
 use base 'Exporter';
 use vars qw/ @EXPORT_OK /;
-@EXPORT_OK = qw(get_daemon_output killing_services check_repo);
+@EXPORT_OK = qw(get_daemon_output killing_services check_repo setup_environment restart_cvmfs_services check_mount_timeout);
 
 # This functions will wait for output from the daemon
 sub get_daemon_output {
@@ -130,6 +134,71 @@ sub check_repo {
 		print "Done.\n";
 		return 0;
 	}
+}
+
+sub setup_environment {
+	# Retrieving directory for repository
+	my $tmp_repo = shift;
+	# Retrieving repository host
+	my $host = shift;
+
+	my $repo_pub = $tmp_repo . 'pub';
+	
+	print "Creating directory $tmp_repo... ";
+	recursive_mkdir($tmp_repo);
+	print "Done.\n";
+
+	print "Extracting the repository... ";
+	system("tar -xzf Tests/Common/repo/pub.tar.gz -C $tmp_repo");
+	print "Done.\n";
+	
+	print 'Creating RSA key... ';
+	system("Tests/Common/creating_rsa.sh");
+	print "Done.\n";
+	
+	print 'Signing files... ';
+	my @files_to_sign;
+	my $select = sub {
+	if ($File::Find::name =~ m/\.cvmfspublished/){
+			push @files_to_sign,$File::Find::name;
+		}
+	};
+	find( { wanted => $select }, $repo_pub );
+	foreach (@files_to_sign) {
+		copy($_,"$_.unsigned");
+		system("Tests/Common/cvmfs_sign-linux32.crun -c /tmp/cvmfs_test.crt -k /tmp/cvmfs_test.key -n $host $_");		
+	}
+	copy('/tmp/whitelist.test.signed', "$repo_pub/catalogs/.cvmfswhitelist");
+	print "Done.\n";
+	
+	print 'Configurin RSA key for cvmfs... ';
+	system("Tests/Common/configuring_rsa.sh $host");
+	copy('/tmp/whitelist.test.signed', "$repo_pub/catalogs/.cvmfswhitelist");
+	print "Done.\n";
+}
+
+sub check_mount_timeout {
+	# Retrieving folder to mount
+	my $repo = shift;
+	# Retrieving seconds for timeout
+	my $seconds = shift;
+	
+	my $before = time();
+	my $opened = opendir(my $dirfh, $repo);
+	my $after = time();
+	closedir($dirfh);
+	
+	my $interval = $after - $before;
+	
+	print "DNS took $interval seconds to time out.\n";
+	
+	return $interval;
+}
+
+sub restart_cvmfs_services {
+	print 'Restarting services... ';
+	system("sudo Tests/Common/restarting_services.sh >> /dev/null 2>&1");
+	print "Done.\n";
 }
 
 1;

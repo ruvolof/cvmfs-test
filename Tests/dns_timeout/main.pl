@@ -3,9 +3,7 @@ use warnings;
 use ZeroMQ qw/:all/;
 use Functions::File qw(recursive_mkdir);
 use Functions::FIFOHandle qw(open_wfifo close_fifo);
-use Tests::Common qw (get_daemon_output killing_services check_repo);
-use File::Find;
-use File::Copy;
+use Tests::Common qw (get_daemon_output killing_services check_repo setup_environment restart_cvmfs_services check_mount_timeout);
 use Getopt::Long;
 use FindBin qw($Bin);
 
@@ -23,6 +21,9 @@ my $no_clean = undef;
 my $socket_protocol = 'ipc://';
 my $socket_path = '/tmp/server.ipc';
 my $testname = 'DNS_TIMEOUT';
+
+# Repository name
+my $repo_name = 'mytestrepo.cern.ch';
 
 
 # Variables used to record tests result. Set to 1 by default, will be changed
@@ -49,6 +50,8 @@ if (defined ($pid) and $pid == 0) {
 	STDERR->fdopen ( \*$errfh, 'w' ) || die "Couldn't set STDERR to $errorfile: $!\n";
 	open (my $outfh, '>', $outputfile) || die "Couldn't open $outputfile: $!\n";
 	STDOUT->fdopen( \*$outfh, 'w' ) || die "Couldn't set STDOUT to $outputfile: $!\n";
+	# Setting autoflush for STDOUT to read its output in real time
+	STDOUT->autoflush;
 
 	# Opening the socket to communicate with the server and setting is identity.
 	print 'Opening the socket to communicate with the server... ';
@@ -70,59 +73,34 @@ if (defined ($pid) and $pid == 0) {
 		print "\nSkipping cleaning.\n";
 	}
 	
-	# Stop to comment from here since print statement are self explanatory.
-	
-	print "Creating directory $tmp_repo... ";
-	recursive_mkdir($tmp_repo);
-	print "Done.\n";
+	# Common test setup
+	setup_environment($tmp_repo, $repo_name);
 
-	print "Extracting the repository... ";
-	system("tar -xzf Tests/Common/repo/pub.tar.gz -C $tmp_repo");
-	print "Done.\n";
-	
-	print 'Creating RSA key... ';
-	system("Tests/Common/creating_rsa.sh");
-	print "Done.\n";
-	
-	print 'Signing files... ';
-	my @files_to_sign;
-	my $select = sub {
-	if ($File::Find::name =~ m/\.cvmfspublished/){
-			push @files_to_sign,$File::Find::name;
-		}
-	};
-	find( { wanted => $select }, $repo_pub );
-	foreach (@files_to_sign) {
-		copy($_,"$_.unsigned");
-		system("Tests/Common/cvmfs_sign-linux32.crun -c /tmp/cvmfs_test.crt -k /tmp/cvmfs_test.key -n mytestrepo.cern.ch $_");		
-	}
-	copy('/tmp/whitelist.test.signed', "$repo_pub/catalogs/.cvmfswhitelist");
-	print "Done.\n";
-	
-	print 'Configurin RSA key for cvmfs... ';
-	system("Tests/Common/configuring_rsa.sh mytestrepo.cern.ch");
-	copy('/tmp/whitelist.test.signed', "$repo_pub/catalogs/.cvmfswhitelist");
-	print "Done.\n";
-
+	# Creating /etc/resolv.conf backup
 	print 'Creating resolv.conf backup... ';
 	my $resolv_temp = `mktemp /tmp/resolv_XXXXXX` || die "Couldn't backup /etc/resolv.conf: $!\n.";
 	chomp($resolv_temp);
 	system("sudo cat /etc/resolv.conf > $resolv_temp");
 	print "Done.\n";
 
+	# Overwriting /etc/resolv.conf with an empty file to avoid that the system complains about
+	# dns answer arriving from a different host than the one expected.
 	print 'Overwriting resolv.conf... ';
 	system('sudo bash -c "echo \"\" > /etc/resolv.conf"');
 	print "Done.\n";
 	
+	# Saving iptables rules
 	print 'Creating iptables rules backup... ';
 	system('sudo /etc/init.d/iptables save > /dev/null 2>&1');
 	print "Done.\n";
 	
+	# Adding iptables rules to redirect any dns request to non-standard port 5300
 	print 'Adding iptables rules... ';
 	system('sudo /sbin/iptables -t nat -A OUTPUT -p tcp --dport domain -j DNAT --to-destination 127.0.0.1:5300');
 	system('sudo /sbin/iptables -t nat -A OUTPUT -p udp --dport domain -j DNAT --to-destination 127.0.0.1:5300');
 	print "Done.\n";
 
+	# Configuring cvmfs for the first two tests.
 	print 'Configuring cvmfs... ';
 	system("sudo $Bin/config_cvmfs.sh");
 	print "Done.\n";
@@ -142,15 +120,13 @@ if (defined ($pid) and $pid == 0) {
 
 	# For this first test, we should be able to mount the repo. So, if possibile, setting its variable
 	# to 1.
-	if (check_repo('/cvmfs/mytestrepo.cern.ch')){
+	if (check_repo("/cvmfs/$repo_name")){
 	    $mount_successful = 1;
 	}
 
 	@pids = killing_services($socket, @pids);
 
-	print 'Restarting services... ';
-	system("sudo Tests/Common/restarting_services.sh >> /dev/null 2>&1");
-	print "Done.\n";
+	restart_cvmfs_services();
 
 	print '-'x30 . 'PROXY_TIMEOUT' . '-'x30 . "\n";
 	print "Starting services for proxy_timeout test...\n";
@@ -167,17 +143,15 @@ if (defined ($pid) and $pid == 0) {
 
 	# For this test, we shouldn't be able to mount the repo. If possibile, setting its variable
 	# to 1.
-	if (check_repo('/cvmfs/mytestrepo.cern.ch')){
-	    $proxy_timeout = 1;
-	}
+	$proxy_timeout = check_mount_timeout("/cvmfs/$repo_name", 10);
 
 	@pids = killing_services($socket, @pids);
 
-	print 'Restarting services... ';
-	system("sudo Tests/Common/restarting_services.sh >> /dev/null 2>&1");
-	print "Done.\n";
+	restart_cvmfs_services();
 	
 	print '-'x30 . 'SERVER_TIMEOUT' . '-'x30 . "\n";
+	
+	# Reconfigurin cvmfs to not use any proxy to test timeout setting with direct connection
 	print 'Configuring cvmfs without proxy... ';
 	system("sudo $Bin/config_cvmfs_noproxy.sh");
 	print "Done.\n";
@@ -193,20 +167,18 @@ if (defined ($pid) and $pid == 0) {
 
 	# For this test, we shouldn't be able to mount the repo. If possibile, setting its variable
 	# to 1.
-	if (check_repo('/cvmfs/mytestrepo.cern.ch')){
-	    $server_timeout = 1;
-	}
+	$server_timeout = check_mount_timeout("/cvmfs/$repo_name", 5);
 
 	@pids = killing_services($socket, @pids);
 
-	print 'Restarting services... ';
-	system("sudo $Bin/restarting_services.sh >> /dev/null 2>&1");
-	print "Done.\n";
+	restart_cvmfs_services();
 	
+	# Restoring resolv.conf
 	print 'Restoring resolv.conf backup... ';
 	system("sudo cp $resolv_temp /etc/resolv.conf");
 	print "Done.\n";
 	
+	# Restarting iptables, it will load previously saved rules
 	print 'Restoring iptables rules... ';
 	system('sudo /etc/init.d/iptables restart > /dev/null 2>&1');
 	print "Done.\n";
@@ -220,17 +192,17 @@ if (defined ($pid) and $pid == 0) {
 	else {
 	    print $outputfifo "Unable to mount the repo with right configuration... WRONG.\n";
 	}
-	if ($proxy_timeout == 1) {
-	    print $outputfifo "Able to mount the repo with proxy timeout configuration... WRONG.\n";
+	if ($proxy_timeout < 15) {
+	    print $outputfifo "Proxy timeout took $proxy_timeout seconds to fail... OK.\n";
 	}
 	else {
-	    print $outputfifo "Unable to mount the repo with proxy timeout configuration... OK.\n";
+	    print $outputfifo "Proxy timeout took $proxy_timeout seconds to fail... WRONG.\n";
 	}
-	if ($server_timeout == 1) {
-	    print $outputfifo "Able to mount repo with server timeout configuration... WRONG.\n";
+	if ($server_timeout < 10) {
+	    print $outputfifo "Server timeout took $server_timeout seconds to fail... OK.\n";
 	}
 	else {
-	    print $outputfifo "Unable to mount the repo with server timeout configuration... OK!\n";
+	    print $outputfifo "Server timeout took $server_timeout seconds to fail... WRONG\n";
 	}
 	close_fifo($outputfifo);
 	print "Done.\n";		

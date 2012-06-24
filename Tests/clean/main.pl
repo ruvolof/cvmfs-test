@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use ZeroMQ qw/:all/;
 use FindBin qw($Bin);
+use Getopt::Long;
 
 my $socket_path = '/tmp/server.ipc';
 my $socket_protocol = 'ipc://';
@@ -10,6 +11,11 @@ my $socket_protocol = 'ipc://';
 # But the server will still try to send them to it. When the server will realize, that this socket
 # isn't listening, the server will discard them.
 my $name = 'CLEAN';
+
+# Variables to store commandline options switch
+my $deep = undef;
+
+my $ret = GetOptions ( "deep" => \$deep );
 
 # Print statement are self explanatory.
 
@@ -32,6 +38,13 @@ print "Done.\n";
 print 'Restarting services... ';
 system("sudo Tests/Common/restarting_services.sh >> /dev/null 2>&1");
 print "Done.\n";
+
+# Cleaning operations to be executed only if --deep option was passed
+if (defined($deep)) {
+	print 'Erasing any /etc/resolv.conf backup... ';
+	system('rm /tmp/resolv_*');
+	print "Done.\n";
+}
 
 # Opening the socket to launch 'killall' command.
 my $ctxt = ZeroMQ::Context->new();

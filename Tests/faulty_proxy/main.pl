@@ -3,9 +3,7 @@ use warnings;
 use ZeroMQ qw/:all/;
 use Functions::File qw(recursive_mkdir);
 use Functions::FIFOHandle qw(open_wfifo close_fifo);
-use Tests::Common qw(get_daemon_output killing_services check_repo);
-use File::Find;
-use File::Copy;
+use Tests::Common qw(get_daemon_output killing_services check_repo setup_environment restart_cvmfs_services);
 use Getopt::Long;
 use FindBin qw($Bin);
 
@@ -22,6 +20,9 @@ my $no_clean = undef;
 # the socket where to send its response.
 my $socket_path = 'ipc:///tmp/server.ipc';
 my $testname = 'FAULTY_PROXY';
+
+# Name for the cvmfs repository
+my $repo_name = '127.0.0.1';
 
 
 # Variables used to record tests result. Set to 1 by default, will be changed
@@ -69,72 +70,41 @@ if (defined ($pid) and $pid == 0) {
 		print "\nSkipping cleaning.\n";
 	}
 	
-	# Stop to comment from here since print statement are self explanatory.
+	# Common environment setup	
+	setup_environment($tmp_repo, $repo_name);
 	
-	print "Creating directory $tmp_repo... ";
-	recursive_mkdir($tmp_repo);
-	print "Done.\n";
-
-	print "Extracting the repository... ";
-	system("tar -xzf Tests/Common/repo/pub.tar.gz -C $tmp_repo");
-	print "Done.\n";
-	
-	print 'Creating RSA key... ';
-	system("Tests/Common/creating_rsa.sh");
-	print "Done.\n";
-	
-	print 'Signing files... ';
-	my @files_to_sign;
-	my $select = sub {
-	if ($File::Find::name =~ m/\.cvmfspublished/){
-			push @files_to_sign,$File::Find::name;
-		}
-	};
-	find( { wanted => $select }, $repo_pub );
-	foreach (@files_to_sign) {
-		copy($_,"$_.unsigned");
-		system("Tests/Common/cvmfs_sign-linux32.crun -c /tmp/cvmfs_test.crt -k /tmp/cvmfs_test.key -n 127.0.0.1 $_");		
-	}
-	copy('/tmp/whitelist.test.signed', "$repo_pub/catalogs/.cvmfswhitelist");
-	print "Done.\n";
-	
-	print 'Configurin RSA key for cvmfs... ';
-	system("Tests/Common/configuring_rsa.sh 127.0.0.1");
-	copy('/tmp/whitelist.test.signed', "$repo_pub/catalogs/.cvmfswhitelist");
-	print "Done.\n";
-	
+	# Configuring cvmfs for sequent test
 	print 'Configuring cvmfs... ';
 	system("sudo $Bin/config_cvmfs.sh");
 	print "Done.\n";
 	
+	# Creating file to be served for --deliver-crap proxy option
 	print 'Creating faulty file... ';
 	open (my $faultyfh, '>', '/tmp/cvmfs.faulty') or die "Couldn't create /tmp/cvmfs.faulty: $!\n";
 	print $faultyfh 'A'x1024x10;
 	print "Done.\n";
 	
-	print '-'x30 . "\n";
+	print '-'x30 . 'MOUNT SUCCESSFUL' . '-'x30 . "\n";
 	print "Starting services for mount_successfull test...\n";
 	$socket->send("httpd --root $repo_pub --index-of --all --port 8080");
 	@pids = get_daemon_output($socket, @pids);
 	sleep 5;
-	$socket->send("webproxy --port 3128 --backend http://localhost:8080");
+	$socket->send("webproxy --port 3128 --backend http://$repo_name:8080");
 	@pids = get_daemon_output($socket, @pids);
 	sleep 5;	
 	print "Services started.\n";
 
 	# For this first test, we should be able to mount the repo. So, if possible, setting its variable
 	# to 1.
-	if (check_repo('/cvmfs/127.0.0.1')){
+	if (check_repo("/cvmfs/$repo_name")){
 	    $mount_successful = 1;
 	}
 
 	@pids = killing_services($socket, @pids);
 
-	print 'Restarting services... ';
-	system("sudo Tests/Common/restarting_services.sh >> /dev/null 2>&1");
-	print "Done.\n";
+	restart_cvmfs_services();
 
-	print '-'x30 . "\n";
+	print '-'x30 . 'PROXY CRAP' . '-'x30 . "\n";
 	print "Starting services for proxy_crap test...\n";
 	$socket->send("httpd --root $repo_pub --index-of --all --port 8080");
 	@pids = get_daemon_output($socket, @pids);
@@ -146,37 +116,33 @@ if (defined ($pid) and $pid == 0) {
 
 	# For this test, we shouldn't be able to mount the repo. If possibile, setting its variable
 	# to 1.
-	if (check_repo('/cvmfs/127.0.0.1')){
+	if (check_repo('/cvmfs/$host_name')){
 	    $proxy_crap = 1;
 	}
 
 	@pids = killing_services($socket, @pids);
 
-	print 'Restarting services... ';
-	system("sudo Tests/Common/restarting_services.sh >> /dev/null 2>&1");
-	print "Done.\n";
+	restart_cvmfs_services();
 	
-	print '-'x30 . "\n";
+	print '-'x30 . 'SERVER TIMEOUT' . '-'x30 . "\n";
 	print "Starting services for server_timeout test...\n";
 	$socket->send("httpd --root $repo_pub --index-of --all --port 8080 --timeout");
 	@pids = get_daemon_output($socket, @pids);
 	sleep 5;
-	$socket->send("webproxy --port 3128 --backend http://localhost:8080");
+	$socket->send("webproxy --port 3128 --backend http://$repo_name:8080");
 	@pids = get_daemon_output($socket, @pids);
 	sleep 5;
 	print "All services started.\n";
 
 	# For this test, we shouldn't be able to mount the repo. If possibile, setting its variable
 	# to 1.
-	if (check_repo('/cvmfs/127.0.0.1')){
+	if (check_repo('/cvmfs/$repo_name')){
 	    $server_timeout = 1;
 	}
 
 	@pids = killing_services($socket, @pids);
 
-	print 'Restarting services... ';
-	system("sudo Tests/Common/restarting_services.sh >> /dev/null 2>&1");
-	print "Done.\n";
+	restart_cvmfs_services();
 
 	# We're sending output to the shell through a FIFO.
 	print 'Sending status to the shell... ';
