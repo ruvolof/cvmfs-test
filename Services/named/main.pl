@@ -22,6 +22,7 @@ my $ret = GetOptions ("port=i" => \$port,
 sub reply_handler {
 	# If is set the timeout flag, the reply_handler will wait 180s
 	if ($timeout){
+		print "Sleeping 180 seconds to cause a timeout.\n";
 		sleep 180;
 		return;
 	}

@@ -106,6 +106,7 @@ if (defined ($pid) and $pid == 0) {
 
 	print 'Creating resolv.conf backup... ';
 	my $resolv_temp = `mktemp /tmp/resolv_XXXXXX` || die "Couldn't backup /etc/resolv.conf: $!\n.";
+	chomp($resolv_temp);
 	system("sudo cat /etc/resolv.conf > $resolv_temp");
 	print "Done.\n";
 
@@ -125,7 +126,7 @@ if (defined ($pid) and $pid == 0) {
 	print 'Configuring cvmfs... ';
 	system("sudo $Bin/config_cvmfs.sh");
 	print "Done.\n";
-	
+
 	print '-'x30 . 'MOUNT_SUCCESSFUL' . '-'x30 . "\n";
 	print "Starting services for mount_successfull test...\n";
 	$socket->send("httpd --root $repo_pub --index-of --all --port 8080");
@@ -148,7 +149,7 @@ if (defined ($pid) and $pid == 0) {
 	@pids = killing_services($socket, @pids);
 
 	print 'Restarting services... ';
-	system("sudo $Bin/restarting_services.sh >> /dev/null 2>&1");
+	system("sudo Tests/Common/restarting_services.sh >> /dev/null 2>&1");
 	print "Done.\n";
 
 	print '-'x30 . 'PROXY_TIMEOUT' . '-'x30 . "\n";
@@ -173,7 +174,7 @@ if (defined ($pid) and $pid == 0) {
 	@pids = killing_services($socket, @pids);
 
 	print 'Restarting services... ';
-	system("sudo $Bin/restarting_services.sh >> /dev/null 2>&1");
+	system("sudo Tests/Common/restarting_services.sh >> /dev/null 2>&1");
 	print "Done.\n";
 	
 	print '-'x30 . 'SERVER_TIMEOUT' . '-'x30 . "\n";
@@ -203,7 +204,7 @@ if (defined ($pid) and $pid == 0) {
 	print "Done.\n";
 	
 	print 'Restoring resolv.conf backup... ';
-	system("sudo sh -c \"cp $resolv_temp /etc/resolv.conf\"");
+	system("sudo cp $resolv_temp /etc/resolv.conf");
 	print "Done.\n";
 	
 	print 'Restoring iptables rules... ';
