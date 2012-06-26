@@ -24,7 +24,7 @@ system("sudo rm -f /tmp/cvmfs_test.key /tmp/cvmfs_test.csr /tmp/cvmfs_test.crt /
 print "Done.\n";
 
 print 'Erasing configuration files in /etc/cvmfs/config.d... ';
-system("sudo rm -f /etc/cvmfs/config.d/127.0.0.1.conf > /dev/null 2>&1");
+system("sudo rm -f /etc/cvmfs/config.d/127.0.0.1.conf /etc/cvmfs/config.d/mytestrepo.cern.ch > /dev/null 2>&1");
 print "Done.\n";
 
 print 'Erasing /tmp/cvmfs.faulty... ';

@@ -3,6 +3,8 @@ Short:  clean		Clean the environment for a new test.
 clean:
 clean:clean
 clean:	Clean the environment for a new test.
+clean:	It is called automatically everytime you run a new test, unless you
+clean:	run it with --no-clean option.
 clean:	Usage: clean <options>
 clean:
 clean:	Available options:

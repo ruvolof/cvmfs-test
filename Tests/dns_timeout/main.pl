@@ -1,7 +1,6 @@
 use strict;
 use warnings;
 use ZeroMQ qw/:all/;
-use Functions::File qw(recursive_mkdir);
 use Functions::FIFOHandle qw(open_wfifo close_fifo);
 use Tests::Common qw (get_daemon_output killing_services check_repo setup_environment restart_cvmfs_services check_mount_timeout);
 use Getopt::Long;
@@ -26,8 +25,9 @@ my $testname = 'DNS_TIMEOUT';
 my $repo_name = 'mytestrepo.cern.ch';
 
 
-# Variables used to record tests result. Set to 1 by default, will be changed
-# to 0 if the test will fail.
+# Variables used to record tests result. Set to 0 by default, will be changed
+# to 1 for mount_successful if the test succed and to seconds needed for timeout
+# for the other two tests.
 my ($mount_successful, $server_timeout, $proxy_timeout) = (0, 0, 0);
 
 # Array to store PID of services. Every service will be killed after every test.
