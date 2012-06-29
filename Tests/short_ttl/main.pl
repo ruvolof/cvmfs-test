@@ -115,12 +115,13 @@ if (defined ($pid) and $pid == 0) {
 	}
 	
 	print '-'x30 . 'TTL_CACHE' . '-'x30 . "\n";
-	print 'Checking ttl for live connection... ';
+	print 'Checking ttl for cached repository... ';
 	$ttl_cache = `attr -g expires /cvmfs/127.0.0.1 | grep -v expires`;
 	chomp($ttl_cache);
 	print "Done.\n";
 	
 	unless(defined($no_wait)) {
+		print '-'x30 . 'REMOUNT_SUCCESSFUL' . '-'x30 . "\n";
 		print "Restarting httpd...\n";
 		$socket->send("httpd --root $repo_pub --index-of --all --port 8080");
 		@pids = get_daemon_output($socket, @pids);
@@ -128,7 +129,9 @@ if (defined ($pid) and $pid == 0) {
 
 		print 'Sleeping ' . ($ttl_cache + 1) . " minutes to check if remount is done.\n";
 		my $slept = sleep (($ttl_cache + 1) * 60);
-		print "Slept for $slept seconds...\n";
+		print "Slept for $slept seconds.\n";
+		
+		check_repo("/cvmfs/$repo_name");
 		
 		print 'Checking if live remount is done... ';
 		$remount_successful = `attr -g expires /cvmfs/127.0.0.1 | grep -v expires`;
