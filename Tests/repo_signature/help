@@ -1,6 +1,5 @@
 Short:  repo_signatureRuns some tests with bad signature and hashes on served files.
 
-
 repo_signature:
 repo_signature:repo_signature
 repo_signature:	Runs a test to verify cvmfs timeout settings.
