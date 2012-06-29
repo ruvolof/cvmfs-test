@@ -153,6 +153,10 @@ sub fixperm {
 	system("find -type d -exec chmod 755 {} +");
 	print "Done.\n";
 	
+	print 'Setting permission for tests directory to 777... ';
+	system("find -name \"Tests*\" -type d -exec chmod 777 {} +");
+	print "Done.\n";
+	
 	print 'Setting permission for help files to 644... ';
 	system("find -type f -name \"*help\" -exec chmod 644 {} +");
 	print "Done.\n";

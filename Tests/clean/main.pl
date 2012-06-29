@@ -3,6 +3,7 @@ use warnings;
 use ZeroMQ qw/:all/;
 use FindBin qw($Bin);
 use Getopt::Long;
+use Tests::Common qw(recursive_rm);
 
 my $socket_path = '/tmp/server.ipc';
 my $socket_protocol = 'ipc://';
@@ -28,11 +29,15 @@ system("sudo rm -f /etc/cvmfs/config.d/127.0.0.1.conf /etc/cvmfs/config.d/mytest
 print "Done.\n";
 
 print 'Erasing /tmp/cvmfs.faulty... ';
-system("sudo rm -f /tmp/cvmfs.faulty > /dev/null 2>&1");
+unlink('/tmp/cvmfs.faulty');
 print "Done.\n";
 
 print 'Erasing /tmp/server directory... ';
-system("sudo rm -f --recursive /tmp/server > /dev/null 2>&1");
+recursive_rm('/tmp/server');
+print "Done.\n";
+
+print 'Erasing /tmp/cvmfs_backup directory ';
+recursive_rm('/tmp/cvmfs_backup');
 print "Done.\n";
 
 print 'Restarting services... ';

@@ -41,6 +41,7 @@ fixperm:	This command will execute the next commands:
 fixperm:	  find -type f -name "*.pm" -exec chmod 644 {} +
 fixperm:	  find -type f -name "*.pl" -exec chmod 755 {} +
 fixperm:	  find -type d -exec chmod 755 {} +
+fixperm:	  find -name \"Tests*\" -type d -exec chmod 777 {} +
 fixperm:	  find -type f -name "*help" -exec chmod 644 {} +
 fixperm:	  find -type f -name "*.sh" -exec chmod 755 {} +
 fixperm:	  find -type f -name "*.tar.gz" -exec chmod 777 {} +

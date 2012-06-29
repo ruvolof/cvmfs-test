@@ -1,0 +1,1 @@
+Short:  short_ttl	Checks that repository ttl is 4 minutes when relying on caches.

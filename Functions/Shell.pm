@@ -128,7 +128,7 @@ sub get_daemon_output {
 			elsif ($_ =~ m/PROCESSING/) {
 				my $process_name = (split /:/, $_)[-1];
 				chomp($process_name);
-				print "Processing $process_name... ";
+				print "Processing $process_name...\n";
 				$processed = 2;
 			}
 			# This case if the daemon tell the shell to wait for PID to term.

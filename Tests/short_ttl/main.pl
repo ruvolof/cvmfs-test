@@ -11,27 +11,25 @@ use FindBin qw($Bin);
 # Folders where to extract the repo, document root for httpd and other useful folder
 my $tmp_repo = '/tmp/server/repo/';
 my $repo_pub = $tmp_repo . 'pub';
-my $repo_data = $repo_pub . '/data';
-my $datachunk_backup = '/tmp/cvmfs_backup/datachunk';
 
 # Variables for GetOpt
-my $outputfile = '/var/log/cvmfs-test/repo_signature.out';
-my $errorfile = '/var/log/cvmfs-test/repo_signature.err';
+my $outputfile = '/var/log/cvmfs-test/short_ttl.out';
+my $errorfile = '/var/log/cvmfs-test/short_ttl.err';
 my $no_clean = undef;
-my $setup = undef;
+my $no_wait = undef;
 
 # Socket path and socket name. Socket name is set to let the server to select
 # the socket where to send its response.
 my $socket_protocol = 'ipc://';
 my $socket_path = '/tmp/server.ipc';
-my $testname = 'REPO_SIGNATURE';
+my $testname = 'SHORT_TTL';
 
 # Name for the cvmfs repository
 my $repo_name = '127.0.0.1';
 
 # Variables used to record tests result. Set to 0 by default, will be changed
 # to 1 if it will be able to mount the repo.
-my ($mount_successful, $broken_signature, $garbage_datachunk, $garbage_zlib) = (0, 0, 0, 0);
+my ($mount_successful, $mount_cache, $ttl_cache, $ttl_normal, $remount_successful) = (0, 0, 0, 0, 0);
 
 # Array to store PID of services. Every service will be killed after every test.
 my @pids;
@@ -40,24 +38,7 @@ my @pids;
 my $ret = GetOptions ( "stdout=s" => \$outputfile,
 					   "stderr=s" => \$errorfile,
 					   "no-clean" => \$no_clean,
-					   "setup" => \$setup );
-
-# If setup option was invoked, compile zpipe and exit.
-if (defined($setup)) {
-	print 'Compiling zpipe... ';
-	system("gcc -o $Bin/zpipe.run $Bin/zpipe.c -lz");
-	print "Done.\n";
-	print "Setup complete. You're now able to run the test.\n";
-	exit 0;
-}
-					   
-# This test need zpipe to be compiled. If it's not compiled yet, exiting and asking for
-# setup.
-unless (-e "$Bin/zpipe.run") {
-	print "zpipe has to be compiled in order to run this test.\n";
-	print "Run 'repo_signature --setup' to compile it.\n";
-	exit 0;
-}
+					   "no-wait" => \$no_wait );
 					   
 # Forking the process so the daemon can come back in listening mode.
 my $pid = fork();
@@ -115,115 +96,77 @@ if (defined ($pid) and $pid == 0) {
 	if (check_repo("/cvmfs/$repo_name")){
 	    $mount_successful = 1;
 	}
+	
+	print '-'x30 . 'TTL_NORMAL' . '-'x30 . "\n";
+	print 'Checking ttl for live connection... ';
+	$ttl_normal = `attr -g expires /cvmfs/127.0.0.1 | grep -v expires`;
+	chomp($ttl_normal);
+	print "Done.\n";
+	
+	print 'Unmounting cvmfs repo... ';
+	system('sudo umount cvmfs2');
+	print "Done.\n";
+	
+	print '-'x30 . 'MOUNT_FROM_CACHE' . '-'x30 . "\n";	
+	@pids = killing_services($socket, @pids);
+	
+	if (check_repo("/cvmfs/$repo_name")){
+	    $mount_cache = 1;
+	}
+	
+	print '-'x30 . 'TTL_CACHE' . '-'x30 . "\n";
+	print 'Checking ttl for live connection... ';
+	$ttl_cache = `attr -g expires /cvmfs/127.0.0.1 | grep -v expires`;
+	chomp($ttl_cache);
+	print "Done.\n";
+	
+	unless(defined($no_wait)) {
+		print "Restarting httpd...\n";
+		$socket->send("httpd --root $repo_pub --index-of --all --port 8080");
+		@pids = get_daemon_output($socket, @pids);
+		print "Done.\n";
 
-	restart_cvmfs_services();
-	
-	print '-'x30 . 'BROKEN_SIGNATURE' . '-'x30 . "\n";
-	my $published = $repo_pub . '/catalogs/.cvmfspublished';
-	print "Creating $published backup... ";
-	copy($published, "$published.bak");
-	print "Done.\n";
-	print "Creating a corrupted $published... ";
-	open(my $cvmfs_pub_fh, '>>', $published);
-	print $cvmfs_pub_fh '0';
-	close $cvmfs_pub_fh;
-	print "Done.\n";
-	
-	# For this second test, we should not be able to mount the repo. If possible, setting its variable
-	# to 1.
-	if (check_repo("/cvmfs/$repo_name")){
-	    $broken_signature = 1;
+		print 'Sleeping ' . ($ttl_cache + 1) . " minutes to check if remount is done.\n";
+		my $slept = sleep (($ttl_cache + 1) * 60);
+		print "Slept for $slept seconds...\n";
+		
+		print 'Checking if live remount is done... ';
+		$remount_successful = `attr -g expires /cvmfs/127.0.0.1 | grep -v expires`;
+		chomp($remount_successful);
+		print "Done.\n";
 	}
 	
-	print "Restoring $published... ";
-	unlink($published);
-	copy("$published.bak", $published);
-	print "Done.\n";
-
-	restart_cvmfs_services();
-	
-	print '-'x30 . 'GARBAGE_DATACHUNK' . '-'x30 ."\n";
-	print 'Retrieving files... ';
-	my @file_list = find_files($repo_data);
-	print 'Creating backup directory for data chunk... ';
-	recursive_mkdir($datachunk_backup);
-	print "Done.\n";
-	print 'Appending plain text to all files... ';
-	foreach (@file_list) {
-		(my $filename = $_) =~ s/\/.*\/(.*)$/$1/;
-		copy($_, "$datachunk_backup/$filename");		
-		open (my $data_fh, '>>', $_);
-		print $data_fh 'garbage';
-		close $data_fh;
-	}
-	print "Done.\n";
-	
-	# For this third test, we should not be able to mount the repo. If possible, setting its variable
-	# to 1.
-	if (check_repo("/cvmfs/$repo_name")){
-	    $garbage_datachunk = 1;
-	}
-	
-	print 'Restoring data chunk backup... ';
-	foreach (@file_list) {
-		(my $filename = $_) =~ s/\/.*\/(.*)$/$1/;
-		copy("$datachunk_backup/$filename", $_);
-	}
-	print "Done.\n";
-	
-	restart_cvmfs_services();
-	
-	print '-'x30 . 'GARBAGE_ZLIB' . '-'x30 ."\n";
-	# We don't need to retrieve again the file_list as long as it is the same of previous test
-	print 'Appending zlib compressed content to all files... ';
-	foreach (@file_list) {
-		(my $filename = $_) =~ s/\/.*\/(.*)$/$1/;		
-		system("sh -c \"echo garbage | $Bin/zpipe.run >> $_\"");
-	}
-	print "Done.\n";
-	
-	# For this third test, we should not be able to mount the repo. If possible, setting its variable
-	# to 1.
-	if (check_repo("/cvmfs/$repo_name")){
-	    $garbage_zlib = 1;
-	}
-	
-	print 'Restoring data chunk backup... ';
-	foreach (@file_list) {
-		(my $filename = $_) =~ s/\/.*\/(.*)$/$1/;
-		copy("$datachunk_backup/$filename", $_);
-	}
-	print "Done.\n";
-	
-	restart_cvmfs_services();
-	
-	
-	# We're sending output to the shell through a FIFO.
 	print 'Sending status to the shell... ';
 	my $outputfifo = open_wfifo('/tmp/returncode.fifo');
 	if ($mount_successful == 1) {
-	    print $outputfifo "Able to mount the repo with right configuration... OK.\n";
+	    print $outputfifo "Able to mount the repo with active server... OK.\n";
 	}
 	else {
-	    print $outputfifo "Unable to mount the repo with right configuration... WRONG.\n";
+	    print $outputfifo "Unable to mount the repo with active server... WRONG.\n";
 	}
-	if ($broken_signature == 1) {
-	    print $outputfifo "Able to mount the repo with garbage .cvmfspublished... WRONG.\n";
-	}
-	else {
-	    print $outputfifo "Unable to mount the repo with garbage .cvmfspublished... OK.\n";
-	}
-	if ($garbage_datachunk == 1) {
-	    print $outputfifo "Able to mount the repo with garbage datachunk... WRONG.\n";
+	if ($ttl_normal <= 60 and $ttl_normal >= 55) {
+		print $outputfifo "TTL for live connection was $ttl_normal... OK.\n";
 	}
 	else {
-	    print $outputfifo "Unable to mount the repo with garbage datachunk... OK.\n";
+		print $outputfifo "TTL for live connection was $ttl_normal... WRONG.\n";
 	}
-	if ($garbage_zlib == 1) {
-	    print $outputfifo "Able to mount the repo with garbage zlib... WRONG.\n";
+	if ($mount_cache == 1) {
+		print $outputfifo "Able to mount the repo from cache... OK.\n";
 	}
 	else {
-	    print $outputfifo "Unable to mount the repo with garbage zlib... OK.\n";
+		print $outputfifo "Unable to mount the repo from cache... WRONG.\n";
+	}
+	if ($ttl_cache <= 4 and $ttl_cache >= 3) {
+		print $outputfifo "TTL for cached connection was $ttl_cache... OK.\n";
+	}
+	else {
+		print $outputfifo "TTL for cached connection was $ttl_cache... WRONG.\n";
+	}
+	if ($remount_successful <= 60 and $remount_successful >= 55) {
+		print $outputfifo 'TTL after ' . ($ttl_cache + 1) . " minutes was $remount_successful... OK.\n";
+	}
+	else {
+		print $outputfifo 'TTL after ' . ($ttl_cache + 1) . " minutes was $remount_successful... WRONG.\n";
 	}
 	close_fifo($outputfifo);
 	print "Done.\n";

@@ -6,14 +6,14 @@ package Tests::Common;
 
 use strict;
 use warnings;
-use Functions::File qw(recursive_mkdir);
 use File::Find;
 use File::Copy;
 use FindBin qw($Bin);
 
 use base 'Exporter';
 use vars qw/ @EXPORT_OK /;
-@EXPORT_OK = qw(get_daemon_output killing_services check_repo setup_environment restart_cvmfs_services check_mount_timeout);
+@EXPORT_OK = qw(get_daemon_output killing_services check_repo setup_environment restart_cvmfs_services
+				 check_mount_timeout find_files recursive_mkdir recursive_rm);
 
 # This functions will wait for output from the daemon
 sub get_daemon_output {
@@ -199,6 +199,54 @@ sub restart_cvmfs_services {
 	print 'Restarting services... ';
 	system("sudo Tests/Common/restarting_services.sh >> /dev/null 2>&1");
 	print "Done.\n";
+}
+
+sub find_files {
+	# Retrieving root folder
+	my $folder = shift;
+	
+	print 'Retrieving files... ';
+	my @file_list;
+	my $select_files = sub {
+		push @file_list,$File::Find::name if -f $File::Find::name;
+	};
+	find( { wanted => $select_files }, $folder );
+	print "Done.\n";
+	
+	return @file_list;
+}
+
+# This functions accept an absolute path and will recursive
+# create the whole path. Is the equivalent of "make_path" in
+# newer perl version or 'mkdir -p' in any Linux system.
+sub recursive_mkdir {
+	my $path = shift;
+	unless ($path =~ m/^\/[_0-9a-zA-Z]+$/) {
+		my $prevpath = $path;
+		$prevpath =~ s/\/(.*)(\/.*)$/\/$1/;
+		recursive_mkdir($prevpath);
+	}
+	if (!-e $path and !-d $path) {
+		mkdir($path);
+	}
+}
+
+# This functions accept an absolute path and will recursive
+# remove all files and directories. Is the equivalent of
+# 'rm -r' in any Linux system.
+sub recursive_rm {
+	my $path = shift;
+	my $remove = sub {
+		if (!-l and -d) {
+			rmdir($File::Find::name)
+		}
+		else {
+			unlink($File::Find::name);
+		}
+	};
+	if (-e $path) {
+		finddepth ( { wanted => $remove }, $path );
+	}
 }
 
 1;
