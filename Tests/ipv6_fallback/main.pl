@@ -2,7 +2,7 @@ use strict;
 use warnings;
 use ZeroMQ qw/:all/;
 use Functions::FIFOHandle qw(print_to_fifo);
-use Tests::Common qw (get_daemon_output killing_services check_repo setup_environment restart_cvmfs_services check_mount_timeout set_stdout_stderr open_test_socket close_test_socket);
+use Tests::Common qw (set_stdout_stderr get_daemon_output killing_services check_repo setup_environment restart_cvmfs_services check_mount_timeout open_test_socket close_test_socket);
 use Getopt::Long;
 use FindBin qw($Bin);
 
@@ -11,24 +11,24 @@ my $tmp_repo = '/tmp/server/repo/';
 my $repo_pub = $tmp_repo . 'pub';
 
 # Variables for GetOpt
-my $outputfile = '/var/log/cvmfs-test/dns_timeout.out';
-my $errorfile = '/var/log/cvmfs-test/dns_timeout.err';
+my $outputfile = '/var/log/cvmfs-test/ipv6_fallback.out';
+my $errorfile = '/var/log/cvmfs-test/ipv6_fallback.err';
 my $no_clean = undef;
 
-# Socket name is set to let the server to select
-# the socket where to send its response.
-my $testname = 'DNS_TIMEOUT';
+# Test name used for output and socket identity
+my $testname = 'IPV6_FALLBACK';
 
 # Repository name
 my $repo_name = 'mytestrepo.cern.ch';
 
-# FIFO for output
-my $outputfifo = '/tmp/returncode.fifo';
 
 # Variables used to record tests result. Set to 0 by default, will be changed
 # to 1 for mount_successful if the test succed and to seconds needed for timeout
 # for the other two tests.
-my ($mount_successful, $server_timeout, $proxy_timeout) = (0, 0, 0);
+my ($ipv6_only, $ipv4_fallback) = (0, 0);
+
+# FIFO for output
+my $outputfifo = '/tmp/returncode.fifo';
 
 # Array to store PID of services. Every service will be killed after every test.
 my @pids;
@@ -50,7 +50,7 @@ if (defined ($pid) and $pid == 0) {
 
 	# Opening the socket to communicate with the server and setting is identity.
 	my ($socket, $ctxt) = open_test_socket($testname);
-
+	
 	# Cleaning the environment if --no-clean is undef.
 	# See 'Tests/clean/main.pl' if you want to know what this command does.
 	if (!defined($no_clean)) {
@@ -90,20 +90,17 @@ if (defined ($pid) and $pid == 0) {
 	system('sudo /sbin/iptables -t nat -A OUTPUT -p udp --dport domain -j DNAT --to-destination 127.0.0.1:5300');
 	print "Done.\n";
 
-	# Configuring cvmfs for the first two tests.
+	# Configuring cvmfs
 	print 'Configuring cvmfs... ';
 	system("sudo $Bin/config_cvmfs.sh");
 	print "Done.\n";
 
-	print '-'x30 . 'MOUNT_SUCCESSFUL' . '-'x30 . "\n";
+	print '-'x30 . 'IPV6_ONLY' . '-'x30 . "\n";
 	print "Starting services for mount_successfull test...\n";
 	$socket->send("httpd --root $repo_pub --index-of --all --port 8080");
 	@pids = get_daemon_output($socket, @pids);
 	sleep 5;
-	$socket->send('webproxy --port 3128 --backend http://mytestrepo.cern.ch:8080');
-	@pids = get_daemon_output($socket, @pids);
-	sleep 5;
-	$socket->send('named --port 5300 --add mytestrepo.cern.ch=127.0.0.1');
+	$socket->send('named --port 5300 --add-ipv6 mytestrepo.cern.ch=::1');
 	@pids = get_daemon_output($socket, @pids);
 	sleep 5;
 	print "Done.\n";
@@ -111,73 +108,39 @@ if (defined ($pid) and $pid == 0) {
 	# For this first test, we should be able to mount the repo. So, if possibile, setting its variable
 	# to 1.
 	if (check_repo("/cvmfs/$repo_name")){
-	    $mount_successful = 1;
+	    $ipv6_only = 1;
 	}
 	
-	if ($mount_successful == 1) {
-	    print_to_fifo($outputfifo, "Able to mount the repo with right configuration... OK.\n", "SNDMORE\n");
+	if ($ipv6_only == 1) {
+	    print_to_fifo($outputfifo, "Able to mount the repo with ipv6... OK.\n", 'SNDMORE');
 	}
 	else {
-	    print_to_fifo($outputfifo, "Unable to mount the repo with right configuration... WRONG.\n", "SNDMORE\n");
+	    print_to_fifo($outputfifo, "Unable to mount the repo with ipv6... WRONG.\n", 'SNDMORE');
 	}
 
 	@pids = killing_services($socket, @pids);
 
 	restart_cvmfs_services();
 
-	print '-'x30 . 'PROXY_TIMEOUT' . '-'x30 . "\n";
+	print '-'x30 . 'IPV4_FALLBACK' . '-'x30 . "\n";
 	print "Starting services for proxy_timeout test...\n";
 	$socket->send("httpd --root $repo_pub --index-of --all --port 8080");
 	@pids = get_daemon_output($socket, @pids);
 	sleep 5;
-	$socket->send('webproxy --port 3128 --backend http://mytestrepo.cern.ch:8080');
-	@pids = get_daemon_output($socket, @pids);
-	sleep 5;
-	$socket->send('named --port 5300 --add mytestrepo.cern.ch=127.0.0.1 --timeout');
+	$socket->send("named --port 5300 --add-ipv6 $repo_name=::10 --add $repo_name=127.0.0.1 ");
 	@pids = get_daemon_output($socket, @pids);
 	sleep 5;
 	print "Done.\n";
 
-	# For this test, we shouldn't be able to mount the repo. If possibile, setting its variable
-	# to 1.
-	$proxy_timeout = check_mount_timeout("/cvmfs/$repo_name", 10);
+	if (check_repo("/cvmfs/$repo_name") {
+		$ipv4_fallback = 1;
+	}
 	
-	if ($proxy_timeout < 15) {
-	    print_to_fifo($outputfifo, "Proxy timeout took $proxy_timeout seconds to fail... OK.\n", "SNDMORE\n");
+	if ($ipv4_fallback == 1) {
+	    print_to_fifo($outputfifo, "Able to mount the repo with wrong ipv6 and good ipv4... OK.\n");
 	}
 	else {
-	    print_to_fifo($outputfifo, "Proxy timeout took $proxy_timeout seconds to fail... WRONG.\n", "SNDMORE\n");
-	}
-
-	@pids = killing_services($socket, @pids);
-
-	restart_cvmfs_services();
-	
-	print '-'x30 . 'SERVER_TIMEOUT' . '-'x30 . "\n";
-	
-	# Reconfigurin cvmfs to not use any proxy to test timeout setting with direct connection
-	print 'Configuring cvmfs without proxy... ';
-	system("sudo $Bin/config_cvmfs_noproxy.sh");
-	print "Done.\n";
-
-	print "Starting services for server_timeout test...\n";
-	$socket->send("httpd --root $repo_pub --index-of --all --port 8080");
-	@pids = get_daemon_output($socket, @pids);
-	sleep 5;
-	$socket->send('named --port 5300 --add mytestrepo.cern.ch=127.0.0.1 --timeout');
-	@pids = get_daemon_output($socket, @pids);
-	sleep 5;
-	print "All services started.\n";
-
-	# For this test, we shouldn't be able to mount the repo. If possibile, setting its variable
-	# to 1.
-	$server_timeout = check_mount_timeout("/cvmfs/$repo_name", 5);
-	
-	if ($server_timeout < 10) {
-	    print_to_fifo($outputfifo, "Server timeout took $server_timeout seconds to fail... OK.\n");
-	}
-	else {
-	    print_to_fifo($outputfifo, "Server timeout took $server_timeout seconds to fail... WRONG\n");
+	    print_to_fifo($outputfifo, "Unable to mount the repo with wrong ipv6 and good ipv4... WRONG.\n");
 	}	
 
 	@pids = killing_services($socket, @pids);
@@ -194,9 +157,9 @@ if (defined ($pid) and $pid == 0) {
 	system('sudo /etc/init.d/iptables restart > /dev/null 2>&1');
 	print "Done.\n";
 	
+	# Closing socket
 	close_test_socket($socket, $ctxt);
 }
-
 
 # This will be ran by the main script.
 # These lines will be sent back to the daemon and the damon will send them to the shell.

@@ -113,6 +113,30 @@ sub check_permission {
 	}
 }
 
+# This function will be use to get test output from the FIFO.
+sub get_test_output {
+	# Will be set to 1 if more output lines are coming
+	my $continue = 0;
+	
+	# Creating a FIFO. The shell will wait for some output there.
+	make_fifo('/tmp/returncode.fifo');
+	my $return_fh = open_rfifo('/tmp/returncode.fifo');
+	#Be careful: this is blocking. Be sure to not send READ_RETURN_CODE signal to the shell
+	# if you are not going to write something in the FIFO. The shell will hang.
+	while (my $return_line = $return_fh->getline) {
+		if ($return_line eq "SNDMORE\n") {
+			$continue = 1;
+		}
+		print $return_line unless $return_line eq "SNDMORE\n";
+	}
+	close_fifo($return_fh);
+	unlink_fifo('/tmp/returncode.fifo');
+	
+	if ($continue) {
+		get_test_output();
+	}
+}
+
 # This function will call a loop to wait for a complex output from the daemon
 sub get_daemon_output {
 	my $reply = '';
@@ -133,16 +157,7 @@ sub get_daemon_output {
 			}
 			# This case if the daemon tell the shell to wait for PID to term.
 			elsif ($_ =~ m/READ_RETURN_CODE/) {
-				# Creating a FIFO. The shell will wait for some output there.
-			    make_fifo('/tmp/returncode.fifo');
-				my $return_fh = open_rfifo('/tmp/returncode.fifo');
-				#Be careful: this is blocking. Be sure to not send READ_RETURN_CODE signal to the shell
-				# if you are not going to write something in the FIFO. The shell will hang.
-				while (my $return_line = $return_fh->getline) {
-					print $return_line;
-				}
-				close_fifo($return_fh);
-			    unlink_fifo('/tmp/returncode.fifo');
+				get_test_output();
 				$processed = 2;
 			}
 			# Other cases with special signal that are useless for the shell.

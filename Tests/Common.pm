@@ -8,12 +8,26 @@ use strict;
 use warnings;
 use File::Find;
 use File::Copy;
+use ZeroMQ qw/:all/;
 use FindBin qw($Bin);
 
 use base 'Exporter';
 use vars qw/ @EXPORT_OK /;
 @EXPORT_OK = qw(get_daemon_output killing_services check_repo setup_environment restart_cvmfs_services
-				 check_mount_timeout find_files recursive_mkdir recursive_rm);
+				 check_mount_timeout find_files recursive_mkdir recursive_rm open_test_socket close_test_socket
+				 set_stdout_stderr);
+
+# This function will set STDOUT and STDERR for forked process
+sub set_stdout_stderr {
+	my $outputfile = shift;
+	my $errorfile = shift;
+	open (my $errfh, '>', $errorfile) || die "Couldn't open $errorfile: $!\n";
+	STDERR->fdopen ( \*$errfh, 'w' ) || die "Couldn't set STDERR to $errorfile: $!\n";
+	open (my $outfh, '>', $outputfile) || die "Couldn't open $outputfile: $!\n";
+	STDOUT->fdopen( \*$outfh, 'w' ) || die "Couldn't set STDOUT to $outputfile: $!\n";
+	# Setting autoflush for STDOUT to read its output in real time
+	STDOUT->autoflush;
+}
 
 # This functions will wait for output from the daemon
 sub get_daemon_output {
@@ -247,6 +261,36 @@ sub recursive_rm {
 	if (-e $path) {
 		finddepth ( { wanted => $remove }, $path );
 	}
+}
+
+# This variables will be used for the socket
+my $socket_protocol = 'ipc://';
+my $socket_path = '/tmp/server.ipc';
+
+# This function will open and return the socket object used to send messages
+# to the daemon. It will aslo set the socket identity.
+sub open_test_socket {
+	# Retrieving testname
+	my $testname = shift;
+	
+	# Opening the socket to communicate with the server and setting is identity.
+	print 'Opening the socket to communicate with the server... ';
+	my $ctxt = ZeroMQ::Context->new();
+	my $socket = $ctxt->socket(ZMQ_DEALER);
+	my $setopt = $socket->setsockopt(ZMQ_IDENTITY, $testname);
+	$socket->connect( "${socket_protocol}${socket_path}" );
+	print "Done.\n";
+	
+	return ($socket, $ctxt);
+}
+
+# This function will terminate ZeroMQ context and close the socket
+sub close_test_socket {
+	my $socket = shift;
+	my $ctxt = shift;
+
+	$socket->close();
+	$ctxt->term();
 }
 
 1;

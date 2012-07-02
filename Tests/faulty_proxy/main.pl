@@ -1,8 +1,8 @@
 use strict;
 use warnings;
 use ZeroMQ qw/:all/;
-use Functions::FIFOHandle qw(open_wfifo close_fifo);
-use Tests::Common qw(get_daemon_output killing_services check_repo setup_environment restart_cvmfs_services);
+use Functions::FIFOHandle qw(print_to_fifo);
+use Tests::Common qw(get_daemon_output killing_services check_repo setup_environment restart_cvmfs_services set_stdout_stderr open_test_socket close_test_socket);
 use Getopt::Long;
 use FindBin qw($Bin);
 
@@ -22,6 +22,9 @@ my $testname = 'FAULTY_PROXY';
 
 # Name for the cvmfs repository
 my $repo_name = '127.0.0.1';
+
+# FIFO for output
+my $outputfifo = '/tmp/returncode.fifo';
 
 
 # Variables used to record tests result. Set to 0 by default, will be changed
@@ -44,18 +47,10 @@ my $pid = fork();
 # will not be sent back to the daemon.
 if (defined ($pid) and $pid == 0) {
 	# Setting STDOUT and STDERR to file in log folder.
-	open (my $errfh, '>', $errorfile) || die "Couldn't open $errorfile: $!\n";
-	STDERR->fdopen ( \*$errfh, 'w' ) || die "Couldn't set STDERR to $errorfile: $!\n";
-	open (my $outfh, '>', $outputfile) || die "Couldn't open $outputfile: $!\n";
-	STDOUT->fdopen( \*$outfh, 'w' ) || die "Couldn't set STDOUT to $outputfile: $!\n";
+	set_stdout_stderr($outputfile, $errorfile);
 
 	# Opening the socket to communicate with the server and setting is identity.
-	print 'Opening the socket to communicate with the server... ';
-	my $ctxt = ZeroMQ::Context->new();
-	my $socket = $ctxt->socket(ZMQ_DEALER);
-	my $setopt = $socket->setsockopt(ZMQ_IDENTITY, $testname);
-	$socket->connect( $socket_path );
-	print "Done.\n";
+	my ($socket, $ctxt) = open_test_socket($testname);
 
 	# Cleaning the environment if --no-clean is undef.
 	# See 'Tests/clean/main.pl' if you want to know what this command does.
@@ -98,6 +93,13 @@ if (defined ($pid) and $pid == 0) {
 	if (check_repo("/cvmfs/$repo_name")){
 	    $mount_successful = 1;
 	}
+	
+	if ($mount_successful == 1) {
+	    print_to_fifo($outputfifo, "Able to mount the repo with right configuration... OK.\n", "SNDMORE\n");
+	}
+	else {
+	    print_to_fifo($outputfifo, "Unable to mount the repo with right configuration... WRONG.\n", "SNDMORE\n");
+	}
 
 	@pids = killing_services($socket, @pids);
 
@@ -115,8 +117,15 @@ if (defined ($pid) and $pid == 0) {
 
 	# For this test, we shouldn't be able to mount the repo. If possibile, setting its variable
 	# to 1.
-	if (check_repo('/cvmfs/$host_name')){
+	if (check_repo('/cvmfs/$repo_name')){
 	    $proxy_crap = 1;
+	}
+	
+	if ($proxy_crap == 1) {
+	    print_to_fifo($outputfifo, "Able to mount the repo with faulty proxy configuration... WRONG.\n", "SNDMORE\n");
+	}
+	else {
+	    print_to_fifo($outputfifo, "Unable to mount the repo with faulty proxy configuration... OK.\n", "SNDMORE\n");
 	}
 
 	@pids = killing_services($socket, @pids);
@@ -138,34 +147,17 @@ if (defined ($pid) and $pid == 0) {
 	if (check_repo('/cvmfs/$repo_name')){
 	    $server_timeout = 1;
 	}
-
+	
+	if ($server_timeout == 1) {
+	    print_to_fifo($outputfifo, "Able to mount repo with server timeout configuration... WRONG.\n");
+	}
+	else {
+	    print_to_fifo($outputfifo, "Unable to mount the repo with server timeout configuration... OK!\n");
+	}
+	
 	@pids = killing_services($socket, @pids);
 
-	restart_cvmfs_services();
-
-	# We're sending output to the shell through a FIFO.
-	print 'Sending status to the shell... ';
-	my $outputfifo = open_wfifo('/tmp/returncode.fifo');
-	if ($mount_successful == 1) {
-	    print $outputfifo "Able to mount the repo with right configuration... OK.\n";
-	}
-	else {
-	    print $outputfifo "Unable to mount the repo with right configuration... WRONG.\n";
-	}
-	if ($proxy_crap == 1) {
-	    print $outputfifo "Able to mount the repo with faulty proxy configuration... WRONG.\n";
-	}
-	else {
-	    print $outputfifo "Unable to mount the repo with faulty proxy configuration... OK.\n";
-	}
-	if ($server_timeout == 1) {
-	    print $outputfifo "Able to mount repo with server timeout configuration... WRONG.\n";
-	}
-	else {
-	    print $outputfifo "Unable to mount the repo with server timeout configuration... OK!\n";
-	}
-	close_fifo($outputfifo);
-	print "Done.\n";		
+	restart_cvmfs_services();	
 }
 
 # This will be ran by the main script.

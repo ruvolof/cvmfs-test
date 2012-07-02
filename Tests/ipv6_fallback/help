@@ -1,0 +1,1 @@
+Short:  ipv6_fallback	Checks if cvmfs can mount a repo with ipv6 address and eventually falling back to ipv4.

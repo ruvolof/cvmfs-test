@@ -24,7 +24,7 @@ sub make_fifo {
     system("chmod 777 $fifo");
 }
 
-# This function will semply unlink any FIFO.
+# This function will simply unlink any FIFO.
 sub unlink_fifo {
     my $fifo = shift;
     unlink($fifo);
@@ -63,14 +63,19 @@ sub close_fifo {
 
 # This function will open the FIFO, print on it or die if something goes wrong
 sub print_to_fifo {
-	# Retrieving arguments: the FIFO path, the line to print
+	# Retrieving arguments: the FIFO path, the line to print and options
 	my $fifo = shift;
 	my $line = shift;
+	my $options = shift;
 	
 	# Opening the FIFO
 	my $fh = open_wfifo($fifo) || die "Couldn't open $fifo: $!\n";
 	# Printing to FIFO
 	print $fh $line;
+	
+	if (defined ($options) and $options eq "SNDMORE\n") {
+		print $fh "SNDMORE\n";
+	}
 	# Closing the FIFO
 	close_fifo($fh);
 }
