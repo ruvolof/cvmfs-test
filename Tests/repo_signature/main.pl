@@ -1,8 +1,8 @@
 use strict;
 use warnings;
 use ZeroMQ qw/:all/;
-use Functions::FIFOHandle qw(open_wfifo close_fifo);
-use Tests::Common qw(get_daemon_output killing_services check_repo setup_environment restart_cvmfs_services find_files recursive_mkdir);
+use Functions::FIFOHandle qw(print_to_fifo);
+use Tests::Common qw(get_daemon_output killing_services check_repo setup_environment restart_cvmfs_services find_files recursive_mkdir set_stdout_stderr open_test_socket close_test_socket);
 use File::Copy;
 use File::Find;
 use Getopt::Long;
@@ -25,6 +25,8 @@ my $setup = undef;
 my $socket_protocol = 'ipc://';
 my $socket_path = '/tmp/server.ipc';
 my $testname = 'REPO_SIGNATURE';
+
+my $outputfifo = '/tmp/returncode.fifo';
 
 # Name for the cvmfs repository
 my $repo_name = '127.0.0.1';
@@ -66,20 +68,10 @@ my $pid = fork();
 # will not be sent back to the daemon.
 if (defined ($pid) and $pid == 0) {
 	# Setting STDOUT and STDERR to file in log folder.
-	open (my $errfh, '>', $errorfile) || die "Couldn't open $errorfile: $!\n";
-	STDERR->fdopen ( \*$errfh, 'w' ) || die "Couldn't set STDERR to $errorfile: $!\n";
-	open (my $outfh, '>', $outputfile) || die "Couldn't open $outputfile: $!\n";
-	STDOUT->fdopen( \*$outfh, 'w' ) || die "Couldn't set STDOUT to $outputfile: $!\n";
-	# Setting autoflush for STDOUT to read its output in real time
-	STDOUT->autoflush;
+	set_stdout_stderr($outputfile, $errorfile);
 	
 	# Opening the socket to communicate with the server and setting is identity.
-	print 'Opening the socket to communicate with the server... ';
-	my $ctxt = ZeroMQ::Context->new();
-	my $socket = $ctxt->socket(ZMQ_DEALER);
-	my $setopt = $socket->setsockopt(ZMQ_IDENTITY, $testname);
-	$socket->connect( "${socket_protocol}${socket_path}" );
-	print "Done.\n";
+	my ($socket, $ctxt) = open_test_socket;
 	
 	# Cleaning the environment if --no-clean is undef.
 	# See 'Tests/clean/main.pl' if you want to know what this command does.
@@ -115,6 +107,13 @@ if (defined ($pid) and $pid == 0) {
 	if (check_repo("/cvmfs/$repo_name")){
 	    $mount_successful = 1;
 	}
+	
+	if ($mount_successful == 1) {
+	    print_to_fifo($outputfifo, "Able to mount the repo with right configuration... OK.\n", "SNDMORE\n");
+	}
+	else {
+	    print_to_fifo($outputfifo, "Unable to mount the repo with right configuration... WRONG.\n", "SNDMORE\n");
+	}
 
 	restart_cvmfs_services();
 	
@@ -133,6 +132,13 @@ if (defined ($pid) and $pid == 0) {
 	# to 1.
 	if (check_repo("/cvmfs/$repo_name")){
 	    $broken_signature = 1;
+	}
+	
+	if ($broken_signature == 1) {
+	    print_to_fifo($outputfifo, "Able to mount the repo with garbage .cvmfspublished... WRONG.\n", "SNDMORE\n");
+	}
+	else {
+	    print_to_fifo($outputfifo, "Unable to mount the repo with garbage .cvmfspublished... OK.\n", "SNDMORE\n");
 	}
 	
 	print "Restoring $published... ";
@@ -164,6 +170,13 @@ if (defined ($pid) and $pid == 0) {
 	    $garbage_datachunk = 1;
 	}
 	
+	if ($garbage_datachunk == 1) {
+	    print_to_fifo($outputfifo, "Able to mount the repo with garbage datachunk... WRONG.\n", "SNDMORE\n");
+	}
+	else {
+	    print_to_fifo($outputfifo, "Unable to mount the repo with garbage datachunk... OK.\n", "SNDMORE\n");
+	}
+	
 	print 'Restoring data chunk backup... ';
 	foreach (@file_list) {
 		(my $filename = $_) =~ s/\/.*\/(.*)$/$1/;
@@ -186,6 +199,13 @@ if (defined ($pid) and $pid == 0) {
 	# to 1.
 	if (check_repo("/cvmfs/$repo_name")){
 	    $garbage_zlib = 1;
+	}	
+	
+	if ($garbage_zlib == 1) {
+	    print_to_fifo($outputfifo, "Able to mount the repo with garbage zlib... WRONG.\n", "SNDMORE\n");
+	}
+	else {
+	    print_to_fifo($outputfifo, "Unable to mount the repo with garbage zlib... OK.\n", "SNDMORE\n");
 	}
 	
 	print 'Restoring data chunk backup... ';
@@ -196,37 +216,6 @@ if (defined ($pid) and $pid == 0) {
 	print "Done.\n";
 	
 	restart_cvmfs_services();
-	
-	
-	# We're sending output to the shell through a FIFO.
-	print 'Sending status to the shell... ';
-	my $outputfifo = open_wfifo('/tmp/returncode.fifo');
-	if ($mount_successful == 1) {
-	    print $outputfifo "Able to mount the repo with right configuration... OK.\n";
-	}
-	else {
-	    print $outputfifo "Unable to mount the repo with right configuration... WRONG.\n";
-	}
-	if ($broken_signature == 1) {
-	    print $outputfifo "Able to mount the repo with garbage .cvmfspublished... WRONG.\n";
-	}
-	else {
-	    print $outputfifo "Unable to mount the repo with garbage .cvmfspublished... OK.\n";
-	}
-	if ($garbage_datachunk == 1) {
-	    print $outputfifo "Able to mount the repo with garbage datachunk... WRONG.\n";
-	}
-	else {
-	    print $outputfifo "Unable to mount the repo with garbage datachunk... OK.\n";
-	}
-	if ($garbage_zlib == 1) {
-	    print $outputfifo "Able to mount the repo with garbage zlib... WRONG.\n";
-	}
-	else {
-	    print $outputfifo "Unable to mount the repo with garbage zlib... OK.\n";
-	}
-	close_fifo($outputfifo);
-	print "Done.\n";
 }
 
 # This will be ran by the main script.
