@@ -13,6 +13,7 @@ my $repo_pub = $tmp_repo . 'pub';
 # Variables for GetOpt
 my $outputfile = '/var/log/cvmfs-test/faulty_proxy.out';
 my $errorfile = '/var/log/cvmfs-test/faulty_proxy.err';
+my $outputfifo = '/tmp/returncode.fifo';
 my $no_clean = undef;
 
 # Socket path and socket name. Socket name is set to let the server to select
@@ -22,10 +23,6 @@ my $testname = 'FAULTY_PROXY';
 
 # Name for the cvmfs repository
 my $repo_name = '127.0.0.1';
-
-# FIFO for output
-my $outputfifo = '/tmp/returncode.fifo';
-
 
 # Variables used to record tests result. Set to 0 by default, will be changed
 # to 1 if it will be able to mount the repo.
@@ -37,7 +34,8 @@ my @pids;
 # Retrieving command line options
 my $ret = GetOptions ( "stdout=s" => \$outputfile,
 					   "stderr=s" => \$errorfile,
-					   "no-clean" => \$no_clean );
+					   "no-clean" => \$no_clean,
+					   "fifo=s" => \$outputfifo );
 
 
 # Forking the process so the daemon can come back in listening mode.
@@ -169,7 +167,7 @@ if (defined ($pid) and $pid != 0) {
 	print "PROCESSING:FAULTY_PROXY\n";
 	# This is the line that makes the shell waiting for test output.
 	# Change whatever you want, but don't change this line or the shell will ignore exit status.
-	print "READ_RETURN_CODE\n";
+	print "READ_RETURN_CODE:$outputfifo\n";
 }
 
 exit 0;

@@ -15,17 +15,15 @@ my $repo_pub = $tmp_repo . 'pub';
 # Variables for GetOpt
 my $outputfile = '/var/log/cvmfs-test/short_ttl.out';
 my $errorfile = '/var/log/cvmfs-test/short_ttl.err';
+my $outputfifo = '/tmp/returncode.fifo';
 my $no_clean = undef;
-my $no_wait = undef;
+my $no_remount = undef;
 
 # Socket path and socket name. Socket name is set to let the server to select
 # the socket where to send its response.
 my $socket_protocol = 'ipc://';
 my $socket_path = '/tmp/server.ipc';
 my $testname = 'SHORT_TTL';
-
-# FIFO for output
-my $outputfifo = '/tmp/returncode.fifo';
 
 # Name for the cvmfs repository
 my $repo_name = '127.0.0.1';
@@ -41,7 +39,8 @@ my @pids;
 my $ret = GetOptions ( "stdout=s" => \$outputfile,
 					   "stderr=s" => \$errorfile,
 					   "no-clean" => \$no_clean,
-					   "no-wait" => \$no_wait );
+					   "no-remount" => \$no_remount,
+					   "fifo=s" => \$outputfifo );
 					   
 # Forking the process so the daemon can come back in listening mode.
 my $pid = fork();
@@ -90,6 +89,7 @@ if (defined ($pid) and $pid == 0) {
 	}
 	
 	if ($mount_successful == 1) {
+		print "going to write...\n";
 	    print_to_fifo($outputfifo, "Able to mount the repo with active server... OK.\n", "SNDMORE\n");
 	}
 	else {
@@ -140,7 +140,7 @@ if (defined ($pid) and $pid == 0) {
 		print_to_fifo($outputfifo, "TTL for cached connection was $ttl_cache... WRONG.\n", "SNDMORE\n");
 	}
 	
-	unless(defined($no_wait)) {
+	unless(defined($no_remount)) {
 		print '-'x30 . 'REMOUNT_SUCCESSFUL' . '-'x30 . "\n";
 		print "Restarting httpd...\n";
 		$socket->send("httpd --root $repo_pub --index-of --all --port 8080");
@@ -181,7 +181,7 @@ if (defined ($pid) and $pid != 0) {
 	print "PROCESSING:$testname\n";
 	# This is the line that makes the shell waiting for test output.
 	# Change whatever you want, but don't change this line or the shell will ignore exit status.
-	print "READ_RETURN_CODE\n";
+	print "READ_RETURN_CODE:$outputfifo\n";
 }
 
 exit 0;

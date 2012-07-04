@@ -18,9 +18,9 @@ use vars qw/ @EXPORT_OK /;
 sub make_fifo {
     my $fifo = shift;
     if (-e $fifo) {
-	unlink($fifo);
+		unlink($fifo);
     }
-    mkfifo($fifo, 0777);
+    mkfifo($fifo, 0777) || die "Couldn't create $fifo: $!\n";
     system("chmod 777 $fifo");
 }
 
@@ -48,7 +48,7 @@ sub open_wfifo {
 	
 	# Opening the FIFO
 	open (my $fh, '>', $fifo) || die "Couldn't open $fifo: $!\n";
-	
+
 	return $fh;
 }
 
@@ -70,8 +70,9 @@ sub print_to_fifo {
 	
 	# Opening the FIFO
 	my $fh = open_wfifo($fifo) || die "Couldn't open $fifo: $!\n";
+
 	# Printing to FIFO
-	print $fh $line;
+	print $fh $line || die "Couldn't write: $!\n";
 	
 	if (defined ($options) and $options eq "SNDMORE\n") {
 		print $fh "SNDMORE\n";

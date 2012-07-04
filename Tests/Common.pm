@@ -27,6 +27,7 @@ sub set_stdout_stderr {
 	STDOUT->fdopen( \*$outfh, 'w' ) || die "Couldn't set STDOUT to $outputfile: $!\n";
 	# Setting autoflush for STDOUT to read its output in real time
 	STDOUT->autoflush;
+	STDERR->autoflush;
 }
 
 # This functions will wait for output from the daemon
@@ -36,7 +37,7 @@ sub get_daemon_output {
 	# The array to store services pids will be passed as second argument
 	my @pids = @_;
 	
-	my ($data, $reply) = '';
+	my ($data, $reply) = ('', '');
 	# It will stop waiting for output when it receives the string "END\n"
 	while ($data ne "END\n") {
 		$reply = $socket->recv();
@@ -210,8 +211,10 @@ sub check_mount_timeout {
 }
 
 sub restart_cvmfs_services {
+	my $options = shift;
+	
 	print 'Restarting services... ';
-	system("sudo Tests/Common/restarting_services.sh >> /dev/null 2>&1");
+	system("sudo Tests/Common/restarting_services.sh $options >> /dev/null 2>&1");
 	print "Done.\n";
 }
 

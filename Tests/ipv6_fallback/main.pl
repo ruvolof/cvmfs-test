@@ -13,6 +13,7 @@ my $repo_pub = $tmp_repo . 'pub';
 # Variables for GetOpt
 my $outputfile = '/var/log/cvmfs-test/ipv6_fallback.out';
 my $errorfile = '/var/log/cvmfs-test/ipv6_fallback.err';
+my $outputfifo = '/tmp/returncode.fifo';
 my $no_clean = undef;
 
 # Test name used for output and socket identity
@@ -27,16 +28,14 @@ my $repo_name = 'mytestrepo.cern.ch';
 # for the other two tests.
 my ($ipv6_only, $ipv4_fallback) = (0, 0);
 
-# FIFO for output
-my $outputfifo = '/tmp/returncode.fifo';
-
 # Array to store PID of services. Every service will be killed after every test.
 my @pids;
 
 # Retrieving command line options
 my $ret = GetOptions ( "stdout=s" => \$outputfile,
 					   "stderr=s" => \$errorfile,
-					   "no-clean" => \$no_clean );
+					   "no-clean" => \$no_clean,
+					   "fifo=s" => \$outputfifo );
 
 
 # Forking the process so the daemon can come back in listening mode.
@@ -81,13 +80,12 @@ if (defined ($pid) and $pid == 0) {
 	
 	# Saving iptables rules
 	print 'Creating iptables rules backup... ';
-	system('sudo /etc/init.d/iptables save > /dev/null 2>&1');
+	system('sudo Tests/Common/iptables_rules.sh backup');
 	print "Done.\n";
 	
 	# Adding iptables rules to redirect any dns request to non-standard port 5300
 	print 'Adding iptables rules... ';
-	system('sudo /sbin/iptables -t nat -A OUTPUT -p tcp --dport domain -j DNAT --to-destination 127.0.0.1:5300');
-	system('sudo /sbin/iptables -t nat -A OUTPUT -p udp --dport domain -j DNAT --to-destination 127.0.0.1:5300');
+	system('sudo Tests/Common/iptables_rules.sh forward domain 5300');
 	print "Done.\n";
 
 	# Configuring cvmfs
@@ -112,10 +110,10 @@ if (defined ($pid) and $pid == 0) {
 	}
 	
 	if ($ipv6_only == 1) {
-	    print_to_fifo($outputfifo, "Able to mount the repo with ipv6... OK.\n", 'SNDMORE');
+	    print_to_fifo($outputfifo, "Able to mount the repo with ipv6... OK.\n", "SNDMORE\n");
 	}
 	else {
-	    print_to_fifo($outputfifo, "Unable to mount the repo with ipv6... WRONG.\n", 'SNDMORE');
+	    print_to_fifo($outputfifo, "Unable to mount the repo with ipv6... WRONG.\n", "SNDMORE\n");
 	}
 
 	@pids = killing_services($socket, @pids);
@@ -127,12 +125,12 @@ if (defined ($pid) and $pid == 0) {
 	$socket->send("httpd --root $repo_pub --index-of --all --port 8080");
 	@pids = get_daemon_output($socket, @pids);
 	sleep 5;
-	$socket->send("named --port 5300 --add-ipv6 $repo_name=::10 --add $repo_name=127.0.0.1 ");
+	$socket->send("named --port 5300 --add-ipv6 $repo_name=::10 --add $repo_name=127.0.0.1");
 	@pids = get_daemon_output($socket, @pids);
 	sleep 5;
 	print "Done.\n";
 
-	if (check_repo("/cvmfs/$repo_name") {
+	if (check_repo("/cvmfs/$repo_name")) {
 		$ipv4_fallback = 1;
 	}
 	
@@ -154,7 +152,7 @@ if (defined ($pid) and $pid == 0) {
 	
 	# Restarting iptables, it will load previously saved rules
 	print 'Restoring iptables rules... ';
-	system('sudo /etc/init.d/iptables restart > /dev/null 2>&1');
+	system('sudo Tests/Common/iptables_rules.sh restore');
 	print "Done.\n";
 	
 	# Closing socket
@@ -164,13 +162,13 @@ if (defined ($pid) and $pid == 0) {
 # This will be ran by the main script.
 # These lines will be sent back to the daemon and the damon will send them to the shell.
 if (defined ($pid) and $pid != 0) {
-	print "DNS_TIMEOUT test started.\n";
+	print "$testname test started.\n";
 	print "You can read its output in $outputfile.\n";
 	print "Errors are stored in $errorfile.\n";
-	print "PROCESSING:DNS_TIMEOUT\n";
+	print "PROCESSING:$testname\n";
 	# This is the line that makes the shell waiting for test output.
 	# Change whatever you want, but don't change this line or the shell will ignore exit status.
-	print "READ_RETURN_CODE\n";
+	print "READ_RETURN_CODE:$outputfifo\n";
 }
 
 exit 0;

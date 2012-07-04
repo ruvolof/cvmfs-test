@@ -17,16 +17,12 @@ my $datachunk_backup = '/tmp/cvmfs_backup/datachunk';
 # Variables for GetOpt
 my $outputfile = '/var/log/cvmfs-test/repo_signature.out';
 my $errorfile = '/var/log/cvmfs-test/repo_signature.err';
+my $outputfifo = '/tmp/returncode.fifo';
 my $no_clean = undef;
 my $setup = undef;
 
-# Socket path and socket name. Socket name is set to let the server to select
-# the socket where to send its response.
-my $socket_protocol = 'ipc://';
-my $socket_path = '/tmp/server.ipc';
+# Test name used for socket identity and some output lines
 my $testname = 'REPO_SIGNATURE';
-
-my $outputfifo = '/tmp/returncode.fifo';
 
 # Name for the cvmfs repository
 my $repo_name = '127.0.0.1';
@@ -42,7 +38,8 @@ my @pids;
 my $ret = GetOptions ( "stdout=s" => \$outputfile,
 					   "stderr=s" => \$errorfile,
 					   "no-clean" => \$no_clean,
-					   "setup" => \$setup );
+					   "setup" => \$setup,
+					   "fifo=s" => \$outputfifo );
 
 # If setup option was invoked, compile zpipe and exit.
 if (defined($setup)) {
@@ -71,7 +68,7 @@ if (defined ($pid) and $pid == 0) {
 	set_stdout_stderr($outputfile, $errorfile);
 	
 	# Opening the socket to communicate with the server and setting is identity.
-	my ($socket, $ctxt) = open_test_socket;
+	my ($socket, $ctxt) = open_test_socket($testname);
 	
 	# Cleaning the environment if --no-clean is undef.
 	# See 'Tests/clean/main.pl' if you want to know what this command does.
@@ -202,10 +199,10 @@ if (defined ($pid) and $pid == 0) {
 	}	
 	
 	if ($garbage_zlib == 1) {
-	    print_to_fifo($outputfifo, "Able to mount the repo with garbage zlib... WRONG.\n", "SNDMORE\n");
+	    print_to_fifo($outputfifo, "Able to mount the repo with garbage zlib... WRONG.\n");
 	}
 	else {
-	    print_to_fifo($outputfifo, "Unable to mount the repo with garbage zlib... OK.\n", "SNDMORE\n");
+	    print_to_fifo($outputfifo, "Unable to mount the repo with garbage zlib... OK.\n");
 	}
 	
 	print 'Restoring data chunk backup... ';
@@ -216,6 +213,8 @@ if (defined ($pid) and $pid == 0) {
 	print "Done.\n";
 	
 	restart_cvmfs_services();
+	
+	close_test_socket($socket, $ctxt);
 }
 
 # This will be ran by the main script.
@@ -227,7 +226,7 @@ if (defined ($pid) and $pid != 0) {
 	print "PROCESSING:$testname\n";
 	# This is the line that makes the shell waiting for test output.
 	# Change whatever you want, but don't change this line or the shell will ignore exit status.
-	print "READ_RETURN_CODE\n";
+	print "READ_RETURN_CODE:$outputfifo\n";
 }
 
 exit 0;

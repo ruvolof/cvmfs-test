@@ -14,6 +14,7 @@ my $repo_pub = $tmp_repo . 'pub';
 my $outputfile = '/var/log/cvmfs-test/dns_timeout.out';
 my $errorfile = '/var/log/cvmfs-test/dns_timeout.err';
 my $no_clean = undef;
+my $outputfifo = '/tmp/returncode.fifo';
 
 # Socket name is set to let the server to select
 # the socket where to send its response.
@@ -21,9 +22,6 @@ my $testname = 'DNS_TIMEOUT';
 
 # Repository name
 my $repo_name = 'mytestrepo.cern.ch';
-
-# FIFO for output
-my $outputfifo = '/tmp/returncode.fifo';
 
 # Variables used to record tests result. Set to 0 by default, will be changed
 # to 1 for mount_successful if the test succed and to seconds needed for timeout
@@ -36,7 +34,8 @@ my @pids;
 # Retrieving command line options
 my $ret = GetOptions ( "stdout=s" => \$outputfile,
 					   "stderr=s" => \$errorfile,
-					   "no-clean" => \$no_clean );
+					   "no-clean" => \$no_clean,
+					   "fifo=s" => \$outputfifo );
 
 
 # Forking the process so the daemon can come back in listening mode.
@@ -81,13 +80,12 @@ if (defined ($pid) and $pid == 0) {
 	
 	# Saving iptables rules
 	print 'Creating iptables rules backup... ';
-	system('sudo /etc/init.d/iptables save > /dev/null 2>&1');
+	system('sudo Tests/Common/iptables_rules.sh backup');
 	print "Done.\n";
 	
 	# Adding iptables rules to redirect any dns request to non-standard port 5300
 	print 'Adding iptables rules... ';
-	system('sudo /sbin/iptables -t nat -A OUTPUT -p tcp --dport domain -j DNAT --to-destination 127.0.0.1:5300');
-	system('sudo /sbin/iptables -t nat -A OUTPUT -p udp --dport domain -j DNAT --to-destination 127.0.0.1:5300');
+	system('sudo Tests/Common/iptables_rules.sh forward domain 5300');
 	print "Done.\n";
 
 	# Configuring cvmfs for the first two tests.
@@ -142,7 +140,7 @@ if (defined ($pid) and $pid == 0) {
 	# to 1.
 	$proxy_timeout = check_mount_timeout("/cvmfs/$repo_name", 10);
 	
-	if ($proxy_timeout < 15) {
+	if ($proxy_timeout <= 20 and $proxy_timeout >= 18) {
 	    print_to_fifo($outputfifo, "Proxy timeout took $proxy_timeout seconds to fail... OK.\n", "SNDMORE\n");
 	}
 	else {
@@ -173,7 +171,7 @@ if (defined ($pid) and $pid == 0) {
 	# to 1.
 	$server_timeout = check_mount_timeout("/cvmfs/$repo_name", 5);
 	
-	if ($server_timeout < 10) {
+	if ($server_timeout <= 10 and $server_timeout >=8) {
 	    print_to_fifo($outputfifo, "Server timeout took $server_timeout seconds to fail... OK.\n");
 	}
 	else {
@@ -191,7 +189,7 @@ if (defined ($pid) and $pid == 0) {
 	
 	# Restarting iptables, it will load previously saved rules
 	print 'Restoring iptables rules... ';
-	system('sudo /etc/init.d/iptables restart > /dev/null 2>&1');
+	system('sudo Tests/Common/iptables_rules.sh restore');
 	print "Done.\n";
 	
 	close_test_socket($socket, $ctxt);
@@ -207,7 +205,7 @@ if (defined ($pid) and $pid != 0) {
 	print "PROCESSING:DNS_TIMEOUT\n";
 	# This is the line that makes the shell waiting for test output.
 	# Change whatever you want, but don't change this line or the shell will ignore exit status.
-	print "READ_RETURN_CODE\n";
+	print "READ_RETURN_CODE:$outputfifo\n";
 }
 
 exit 0;
