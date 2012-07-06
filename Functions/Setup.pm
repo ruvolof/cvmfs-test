@@ -172,6 +172,10 @@ sub fixperm {
 	print 'Setting permission for C executable files to 755... ';
 	system("find -type f -name \"*.crun\" -exec chmod 755 {} +");
 	print "Done.\n";
+	
+	print 'Setting permission for pod files to 644...';
+	system("find -type f -name \"*.pod\" -exec chmod 644 {} +");
+	print "Done.\n";
 }
 
 sub create_log_folder {

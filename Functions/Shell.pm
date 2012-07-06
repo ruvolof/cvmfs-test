@@ -267,8 +267,22 @@ sub restart_daemon {
 
 # This functions will close the shell after closing socket and terminate ZeroMQ context
 sub exit_shell {
-	close_shell_socket();
-	term_shell_ctxt();
+	if (check_daemon()) {
+		print "The daemon's still running, would you like to stop it before exiting? [Y/n] ";
+		my $stop_it = STDIN->getline;
+		unless ($stop_it eq "n\n" or $stop_it eq "N\n") {
+			send_shell_msg('stop');
+			get_daemon_output();
+		}
+		else {
+			close_shell_socket();
+			term_shell_ctxt();
+		}
+	}
+	else {
+		close_shell_socket();
+		term_shell_ctxt();
+	}
 	
 	exit 0;
 }

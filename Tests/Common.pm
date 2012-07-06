@@ -213,6 +213,10 @@ sub check_mount_timeout {
 sub restart_cvmfs_services {
 	my $options = shift;
 	
+	if (!defined($options)) {
+		$options = '';
+	}
+	
 	print 'Restarting services... ';
 	system("sudo Tests/Common/restarting_services.sh $options >> /dev/null 2>&1");
 	print "Done.\n";

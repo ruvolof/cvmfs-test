@@ -34,7 +34,7 @@ case "$1" in
 		;;
 	"restore")
 		if [ -f $IPTABLES_STARTUP ] ; then
-			$IPTABLES_STARTUP
+			$IPTABLES_STARTUP restart
 		else
 			$IPTABLES_RESTORE
 		fi
@@ -42,6 +42,9 @@ case "$1" in
 	"forward")
 		$IPTABLES -t nat -A OUTPUT -p tcp --dport $2 -j DNAT --to-destination 127.0.0.1:$3
 		$IPTABLES -t nat -A OUTPUT -p udp --dport $2 -j DNAT --to-destination 127.0.0.1:$3
+		;;
+	*)
+		echo "No action set for this argument."
 esac
 
 exit 0
