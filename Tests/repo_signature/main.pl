@@ -44,7 +44,7 @@ my $ret = GetOptions ( "stdout=s" => \$outputfile,
 # If setup option was invoked, compile zpipe and exit.
 if (defined($setup)) {
 	print 'Compiling zpipe... ';
-	system("gcc -o $Bin/zpipe.run $Bin/zpipe.c -lz");
+	system("gcc -o Tests/Common/zpipe.run Tests/Common/zpipe.c -lz");
 	print "Done.\n";
 	print "Setup complete. You're now able to run the test.\n";
 	exit 0;
@@ -52,7 +52,7 @@ if (defined($setup)) {
 					   
 # This test need zpipe to be compiled. If it's not compiled yet, exiting and asking for
 # setup.
-unless (-e "$Bin/zpipe.run") {
+unless (-e "Tests/Common/zpipe.run") {
 	print "zpipe has to be compiled in order to run this test.\n";
 	print "Run 'repo_signature --setup' to compile it.\n";
 	exit 0;
@@ -188,7 +188,7 @@ if (defined ($pid) and $pid == 0) {
 	print 'Appending zlib compressed content to all files... ';
 	foreach (@file_list) {
 		(my $filename = $_) =~ s/\/.*\/(.*)$/$1/;		
-		system("sh -c \"echo garbage | $Bin/zpipe.run >> $_\"");
+		system("sh -c \"echo garbage | Tests/Common/zpipe.run >> $_\"");
 	}
 	print "Done.\n";
 	

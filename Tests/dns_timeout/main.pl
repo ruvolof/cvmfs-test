@@ -199,10 +199,10 @@ if (defined ($pid) and $pid == 0) {
 # This will be ran by the main script.
 # These lines will be sent back to the daemon and the damon will send them to the shell.
 if (defined ($pid) and $pid != 0) {
-	print "DNS_TIMEOUT test started.\n";
+	print "$testname test started.\n";
 	print "You can read its output in $outputfile.\n";
 	print "Errors are stored in $errorfile.\n";
-	print "PROCESSING:DNS_TIMEOUT\n";
+	print "PROCESSING:$testname\n";
 	# This is the line that makes the shell waiting for test output.
 	# Change whatever you want, but don't change this line or the shell will ignore exit status.
 	print "READ_RETURN_CODE:$outputfifo\n";

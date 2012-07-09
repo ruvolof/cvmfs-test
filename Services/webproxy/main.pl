@@ -11,6 +11,7 @@ my $port = 3128;
 my $forbidden = undef;
 my $deliver_crap = undef;
 my $fail_at;
+my $record_transfer = undef;
 our $backend = undef;
 my $outputfile = '/var/log/cvmfs-test/webproxy.out';
 my $errorfile = '/var/log/cvmfs-test/webproxy.err';
@@ -24,7 +25,8 @@ my $ret = GetOptions ( "port=i" => \$port,
 					   "stderr=s" => \$errorfile,
 					   "403" => \$forbidden,
 					   "deliver-crap" => \$deliver_crap,
-					   "backend=s" => \$backend );
+					   "backend=s" => \$backend,
+					   "record-transfer" => \$record_transfer );
 					   
 my @fail_at = split(/,/, $fail_at);
 
@@ -67,6 +69,12 @@ else {
 if (defined ($backend)) {
 	$proxy->push_filter (
 		request => $Filters::ForceBackend::header
+	);
+}
+
+if (defined ($record_transfer)) {
+	$proxy->push_filter (
+		response => $Filters::RecordTransfer::body
 	);
 }
 

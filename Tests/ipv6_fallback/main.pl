@@ -26,7 +26,7 @@ my $repo_name = 'mytestrepo.cern.ch';
 # Variables used to record tests result. Set to 0 by default, will be changed
 # to 1 for mount_successful if the test succed and to seconds needed for timeout
 # for the other two tests.
-my ($ipv6_only, $ipv4_fallback) = (0, 0);
+my ($ipv6_direct, $ipv6_only, $ipv4_fallback) = (0, 0, 0);
 
 # Array to store PID of services. Every service will be killed after every test.
 my @pids;
@@ -87,14 +87,40 @@ if (defined ($pid) and $pid == 0) {
 	print 'Adding iptables rules... ';
 	system('sudo Tests/Common/iptables_rules.sh forward domain 5300');
 	print "Done.\n";
-
-	# Configuring cvmfs
+	
+	print '-'x30 . 'IPV6_DIRECT' . '-'x30 . "\n";
+	# Configurin cvmfs for ipv6 direct usage
 	print 'Configuring cvmfs... ';
+	system("sudo $Bin/config_cvmfs_nodns.sh");
+	print "Done.\n";
+	
+	print "Starting services for ipv6_direct test...\n";
+	$socket->send("httpd --root $repo_pub --index-of --all --port 8080");
+	@pids = get_daemon_output($socket, @pids);
+	sleep 5;
+	
+	if (check_repo("/cvmfs/$repo_name")){
+	    $ipv6_direct = 1;
+	}
+	
+	if ($ipv6_direct == 1) {
+	    print_to_fifo($outputfifo, "Able to mount the repo with direct ipv6 access... OK.\n", "SNDMORE\n");
+	}
+	else {
+	    print_to_fifo($outputfifo, "Unable to mount the repo with direct ipv6 access... WRONG.\n", "SNDMORE\n");
+	}
+	
+	@pids = killing_services($socket, @pids);
+	
+	restart_cvmfs_services();
+
+	# Configuring cvmfs for dns usage
+	print 'Reconfiguring cvmfs for next two tests... ';
 	system("sudo $Bin/config_cvmfs.sh");
 	print "Done.\n";
 
 	print '-'x30 . 'IPV6_ONLY' . '-'x30 . "\n";
-	print "Starting services for mount_successfull test...\n";
+	print "Starting services for ipv6_only test...\n";
 	$socket->send("httpd --root $repo_pub --index-of --all --port 8080");
 	@pids = get_daemon_output($socket, @pids);
 	sleep 5;
@@ -110,10 +136,10 @@ if (defined ($pid) and $pid == 0) {
 	}
 	
 	if ($ipv6_only == 1) {
-	    print_to_fifo($outputfifo, "Able to mount the repo with ipv6... OK.\n", "SNDMORE\n");
+	    print_to_fifo($outputfifo, "Able to mount the repo with ipv6 through dns... OK.\n", "SNDMORE\n");
 	}
 	else {
-	    print_to_fifo($outputfifo, "Unable to mount the repo with ipv6... WRONG.\n", "SNDMORE\n");
+	    print_to_fifo($outputfifo, "Unable to mount the repo with ipv6 through dns... WRONG.\n", "SNDMORE\n");
 	}
 
 	@pids = killing_services($socket, @pids);

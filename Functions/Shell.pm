@@ -14,6 +14,7 @@ use Getopt::Long;
 use Functions::Setup qw(setup fixperm);
 use Functions::ShellSocket qw(start_shell_socket send_shell_msg receive_shell_msg close_shell_socket term_shell_ctxt);
 use Functions::FIFOHandle qw(open_rfifo close_fifo make_fifo unlink_fifo);
+use Term::ANSIColor;
 
 # Next lines are needed to export subroutines to the main package
 use base 'Exporter';
@@ -130,7 +131,21 @@ sub get_test_output {
 		if ($return_line eq "SNDMORE\n") {
 			$continue = 1;
 		}
-		print $return_line unless $return_line eq "SNDMORE\n";
+		
+		# Coloring the output in green or red
+		if ($return_line =~ m/OK.$/) {
+			print color 'green';
+			print $return_line;
+			print color 'reset';
+		}
+		elsif($return_line =~m/WRONG.$/) {
+			print color 'red';
+			print $return_line;
+			print color 'reset';
+		}
+		else {
+			print $return_line unless $return_line eq "SNDMORE\n";
+		}
 	}
 	close_fifo($return_fh);
 	unlink_fifo($fifo);

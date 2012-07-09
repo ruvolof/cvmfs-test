@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Functions::FIFOHandle qw(make_fifo unlink_fifo print_to_fifo);
+use Functions::FIFOHandle qw(make_fifo unlink_fifo print_to_fifo open_rfifo close_fifo);
 use Tests::Common qw(set_stdout_stderr open_test_socket close_test_socket);
 use ZeroMQ qw/:all/;
 use File::Find;
@@ -72,7 +72,6 @@ sub get_daemon_output {
 		if ($data =~ m/READ_RETURN_CODE/) {
 			my $fifo = (split /:/, $data)[-1];
 			chomp($fifo);
-			print "This is the fifo: $fifo";
 			send_test_output($fifo);
 		}
 		
@@ -95,7 +94,7 @@ if (defined ($pid) and $pid == 0) {
 	
 	# This functions will select tests main.pl file
 	my $select = sub {
-		if ($File::Find::name =~ m/.*\/main.pl$/ and $File::Find::name !~ m/do_all/) {
+		if ($File::Find::name =~ m/.*\/main.pl$/ and $File::Find::name !~ m/Auxiliary/) {
 		print "Found: $File::Find::name\n";
 		push @main_pl, $File::Find::name;
 		}
@@ -109,10 +108,11 @@ if (defined ($pid) and $pid == 0) {
 		chomp($test_fifo);
 		
 		my $command = (split /\//, $_)[-2];
-		$socket->send("faulty_proxy --fifo $test_fifo");
+		$socket->send("$command --fifo $test_fifo");
 		get_daemon_output($socket);
 	}
 	
+	sleep 5;
 	print_to_fifo($outputfifo, "All tests processed.\n");
 	
 	close_test_socket($socket, $ctxt);

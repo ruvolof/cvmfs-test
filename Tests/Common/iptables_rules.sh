@@ -29,14 +29,14 @@ case "$1" in
 		if [ -f $IPTABLES_STARTUP ] ; then
 			$IPTABLES_STARTUP save
 		else
-			$IPTABLES_SAVE
+			$IPTABLES_SAVE > saved_iptables_rules
 		fi
 		;;
 	"restore")
 		if [ -f $IPTABLES_STARTUP ] ; then
 			$IPTABLES_STARTUP restart
 		else
-			$IPTABLES_RESTORE
+			$IPTABLES_RESTORE < saved_iptables_rules
 		fi
 		;;
 	"forward")
