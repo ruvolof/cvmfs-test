@@ -52,6 +52,7 @@ if ($fail_at[0] ne 'all') {
 	foreach my $url (@fail_at) {
 		$proxy->push_filter(
 			host => $url,
+			mime => '*/*',
 			response => HTTP::Proxy::BodyFilter::complete->new,
 			response => $$body,
 			response => $$header
@@ -60,6 +61,7 @@ if ($fail_at[0] ne 'all') {
 }
 else {
 	$proxy->push_filter (
+		mime => '*/*',
 		response => HTTP::Proxy::BodyFilter::complete->new(),
 		response => $$body,
 		response => $$header
@@ -74,6 +76,7 @@ if (defined ($backend)) {
 
 if (defined ($record_transfer)) {
 	$proxy->push_filter (
+		mime => '*/*',
 		response => $Filters::RecordTransfer::body
 	);
 }
@@ -84,8 +87,10 @@ my $pid = fork();
 if ( defined($pid) and $pid == 0 ) {
 	open (my $errfh, '>', $errorfile);
 	STDERR->fdopen( \*$errfh, 'w' ) || die "Couldn't set STDERR to $errorfile: $!\n";
+	STDERR->autoflush;
 	open (my $outfh, '>', $outputfile);
 	STDOUT->fdopen( \*$outfh, 'w' ) || die "Couldn't set STDOUT to $outputfile: $!\n";
+	STDOUT->autoflush;
 	$proxy->start;
 }
 

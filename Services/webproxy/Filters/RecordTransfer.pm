@@ -7,10 +7,11 @@ package Filters::RecordTransfer;
 use strict;
 use warnings;
 use HTTP::Proxy::BodyFilter::simple;
-    
+
+my $size = 0;
+   
 our $body = HTTP::Proxy::BodyFilter::simple->new (
 	sub {
-		my ( $self, $dataref, $message, $protocol, $buffer ) = @_;
 		my $record_file = '/tmp/transferred_data';
 		
 		if (-e $record_file) {
@@ -18,14 +19,14 @@ our $body = HTTP::Proxy::BodyFilter::simple->new (
 			open($fh, '<', $record_file);
 			my $actual_size = $fh->getline;
 			close($fh);
-			my $new_size = $actual_size + (length($$dataref));
+			$actual_size += length ${ $_[1] };
 			open($fh, '>', $record_file);
-			print $fh $new_size;
+			print $fh $actual_size;
 			close($fh);
 		}
 		else {
 			open (my $fh, '>', $record_file);
-			print $fh length($$dataref);
+			print $fh length $ { $_[1] };
 			close($fh);
 		}
 	}
