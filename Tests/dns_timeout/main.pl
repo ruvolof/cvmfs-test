@@ -175,7 +175,7 @@ if (defined ($pid) and $pid == 0) {
 	    print_to_fifo($outputfifo, "Server timeout took $server_timeout seconds to fail... OK.\n");
 	}
 	else {
-	    print_to_fifo($outputfifo, "Server timeout took $server_timeout seconds to fail... WRONG\n");
+	    print_to_fifo($outputfifo, "Server timeout took $server_timeout seconds to fail... WRONG.\n");
 	}	
 
 	@pids = killing_services($socket, @pids);

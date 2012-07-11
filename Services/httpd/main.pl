@@ -10,6 +10,7 @@ my $forbidden = undef;
 my $serve_all = undef;
 my $index_of = undef;
 my $timeout = undef;
+my $deliver_crap = undef;
 my $serve_error = 0;
 my $port = 8080;
 my $docroot = '/tmp';
@@ -25,7 +26,8 @@ my $ret = GetOptions ( "404" => \$not_found,
 					   "port=i" => \$port,
 					   "root=s" => \$docroot,
 					   "stdout=s" => \$outputfile,
-					   "stderr=s" => \$errorfile );
+					   "stderr=s" => \$errorfile,
+					   "deliver-crap" => \$deliver_crap );
 
 if (defined ($serve_all)) {
 	$retriever = 'AllRetriever';
@@ -43,6 +45,10 @@ if (defined ($forbidden)) {
 
 if (defined ($timeout)) {
 	$retriever = 'Timeout';
+}
+
+if (defined ($deliver_crap)) {
+	$retriever = 'CrapDeliver';
 }
 
 # Create server instance at localhost:$port

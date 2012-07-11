@@ -146,8 +146,9 @@ if (defined ($pid) and $pid == 0) {
 		$socket->send("httpd --root $repo_pub --index-of --all --port 8080");
 		@pids = get_daemon_output($socket, @pids);
 		print "Done.\n";
-
-		print 'Sleeping ' . ($ttl_cache + 1) . " minutes to check if remount is done.\n";
+		
+		my $offset = $ttl_cache + (4 - $ttl_cache) + 10;
+		print "Sleeping $offset minutes to check if remount is done.\n";
 		my $slept = sleep (($ttl_cache + 1) * 60);
 		print "Slept for $slept seconds.\n";
 		
@@ -159,10 +160,10 @@ if (defined ($pid) and $pid == 0) {
 		print "Done.\n";
 		
 		if ($remount_successful <= 60 and $remount_successful >= 55) {
-			print_to_fifo($outputfifo, 'TTL after ' . ($ttl_cache + 1) . " minutes was $remount_successful... OK.\n");
+			print_to_fifo($outputfifo, "TTL after $offset minutes was $remount_successful... OK.\n");
 		}
 		else {
-			print_to_fifo($outputfifo, 'TTL after ' . ($ttl_cache + 1) . " minutes was $remount_successful... WRONG.\n");
+			print_to_fifo($outputfifo, "TTL after $offset minutes was $remount_successful... WRONG.\n");
 		}
 	}
 	else {
