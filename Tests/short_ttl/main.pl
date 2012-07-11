@@ -147,9 +147,9 @@ if (defined ($pid) and $pid == 0) {
 		@pids = get_daemon_output($socket, @pids);
 		print "Done.\n";
 		
-		my $offset = $ttl_cache + (4 - $ttl_cache) + 10;
+		my $offset = $ttl_cache + (4 - $ttl_cache) + 1;
 		print "Sleeping $offset minutes to check if remount is done.\n";
-		my $slept = sleep (($ttl_cache + 1) * 60);
+		my $slept = sleep ($offset * 60);
 		print "Slept for $slept seconds.\n";
 		
 		check_repo("/cvmfs/$repo_name");

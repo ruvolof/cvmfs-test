@@ -3,7 +3,7 @@ use warnings;
 use ZeroMQ qw/:all/;
 use FindBin qw($Bin);
 use Getopt::Long;
-use Tests::Common qw(recursive_rm);
+use Tests::Common qw(recursive_rm multiple_rm);
 
 my $socket_path = '/tmp/server.ipc';
 my $socket_protocol = 'ipc://';
@@ -47,8 +47,13 @@ print "Done.\n";
 # Cleaning operations to be executed only if --deep option was passed
 if (defined($deep)) {
 	print 'Erasing any /etc/resolv.conf backup... ';
-	system('rm /tmp/resolv_*');
+	multiple_rm('/tmp', 'resolv_');
 	print "Done.\n";
+	
+	print 'Erasing any unlinked FIFO... ';
+	multiple_rm('/tmp', 'test_fifo');
+	print "Done.\n";
+	
 }
 
 # Opening the socket to launch 'killall' command.

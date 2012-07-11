@@ -15,7 +15,7 @@ use base 'Exporter';
 use vars qw/ @EXPORT_OK /;
 @EXPORT_OK = qw(get_daemon_output killing_services check_repo setup_environment restart_cvmfs_services
 				 check_mount_timeout find_files recursive_mkdir recursive_rm open_test_socket close_test_socket
-				 set_stdout_stderr);
+				 set_stdout_stderr multiple_rm);
 
 # This function will set STDOUT and STDERR for forked process
 sub set_stdout_stderr {
@@ -267,6 +267,24 @@ sub recursive_rm {
 	};
 	if (-e $path) {
 		finddepth ( { wanted => $remove }, $path );
+	}
+}
+
+# This function accept a filename and a folder, expands the filename
+# with '*' and erase any files that match in the folder and its subdirectory.
+sub multiple_rm {
+	my $path = shift;
+	my $filename = shift;
+	my $no_perm = sub {
+		grep { -w $_ and -r $_ and -x $_ } @_;
+	};
+	my $remove = sub {
+		if ($File::Find::name =~ m/$filename.*/) {
+			unlink($File::Find::name)
+		}
+	};
+	if (-e $path) {
+		find ( { wanted => $remove, preprocess => $no_perm }, $path );
 	}
 }
 
