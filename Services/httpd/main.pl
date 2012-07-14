@@ -1,5 +1,6 @@
 use strict;
 use warnings;
+use IO::Socket::IP -register;
 use FindBin qw($Bin);
 use lib "$Bin";
 use HTTP::AppServer;
@@ -74,8 +75,10 @@ my $pid = fork;
 if (defined ($pid) and $pid == 0){
 	open (my $errfh, '>', $errorfile) || die "Couldn't open $errorfile: $!\n";
 	STDERR->fdopen ( \*$errfh, 'w' ) || die "Couldn't set STDERR to $errorfile: $!\n";
+	STDERR->autoflush;
 	open (my $outfh, '>', $outputfile) || die "Couldn't open $outputfile: $!\n";
 	STDOUT->fdopen( \*$outfh, 'w' ) || die "Couldn't set STDOUT to $outputfile: $!\n";
+	STDOUT->autoflush;
 	# Starting server in the forked process
 	$server->start;
 }

@@ -73,6 +73,19 @@ if (defined ($pid) and $pid == 0) {
 	system("sudo $Bin/config_cvmfs.sh");
 	print "Done.\n";
 	
+	# Retrieving cvmfs version for short_ttl time
+	print 'Checking cvmfs version to calculate short_ttl settings... ';
+	my $cvmfs_version = `cvmfs2 --version`;
+	chomp($cvmfs_version);
+	my $expected_ttl;
+	if ($cvmfs_version =~ m/2\.0/) {
+		$expected_ttl = 4;
+	}
+	else {
+		$expected_ttl = 3;
+	}
+	print "Done.\n";
+	
 	# For this testcase I'm not going to kill https for each test as long as I need it
 	# with the same configuration for all tests. Restarting cvmfs will be enough.
 	print "Starting services for mount_successfull test...\n";
@@ -133,7 +146,7 @@ if (defined ($pid) and $pid == 0) {
 	chomp($ttl_cache);
 	print "Done.\n";
 	
-	if ($ttl_cache <= 4 and $ttl_cache >= 3) {
+	if ($ttl_cache <= $expected_ttl and $ttl_cache >= 1) {
 		print_to_fifo($outputfifo, "TTL for cached connection was $ttl_cache... OK.\n", "SNDMORE\n");
 	}
 	else {
@@ -147,7 +160,7 @@ if (defined ($pid) and $pid == 0) {
 		@pids = get_daemon_output($socket, @pids);
 		print "Done.\n";
 		
-		my $offset = $ttl_cache + (4 - $ttl_cache) + 1;
+		my $offset = $ttl_cache + ($expected_ttl - $ttl_cache) + 1;
 		print "Sleeping $offset minutes to check if remount is done.\n";
 		my $slept = sleep ($offset * 60);
 		print "Slept for $slept seconds.\n";
