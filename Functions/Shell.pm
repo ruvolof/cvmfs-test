@@ -7,6 +7,7 @@ package Functions::Shell;
 
 use strict;
 use warnings;
+use threads;
 use Functions::Help qw(help);
 use Proc::Daemon;
 use Fcntl ':mode';
@@ -15,6 +16,7 @@ use Functions::Setup qw(setup fixperm);
 use Functions::ShellSocket qw(start_shell_socket send_shell_msg receive_shell_msg close_shell_socket term_shell_ctxt);
 use Functions::FIFOHandle qw(open_rfifo close_fifo make_fifo unlink_fifo);
 use Term::ANSIColor;
+use Time::HiRes qw(sleep);
 
 # Next lines are needed to export subroutines to the main package
 use base 'Exporter';
@@ -28,6 +30,12 @@ use FindBin qw($Bin);
 # This function will check whether the daemon is running.
 sub check_daemon {
 	my $running = `ps -ef | grep cvmfs-testdwrapper | grep -v grep | grep -v defunct`;
+	return $running;
+}
+
+sub check_process {
+	my $process_name = shift;
+	my $running = `ps -fu cvmfs-test | grep $process_name`;
 	return $running;
 }
 
@@ -114,6 +122,24 @@ sub check_permission {
 	}
 }
 
+# This function will print a loading animation while waiting for test output
+sub loading_animation {
+	my $process_name = shift;
+	$process_name = lc($process_name);
+	
+	my @char = qw( | / - \ );
+	my $i = 0;
+	
+	# Disabling STDOUT buffer
+	STDOUT->autoflush;
+	
+	while (check_process($process_name)) {
+		print $char[$i % 4] . "\b";
+		sleep 0.2;
+		$i++;
+	}
+}
+
 # This function will be use to get test output from the FIFO.
 sub get_test_output {
 	# Retrieving FIFO path
@@ -171,6 +197,8 @@ sub get_daemon_output {
 				my $process_name = (split /:/, $_)[-1];
 				chomp($process_name);
 				print "Processing $process_name...\n";
+				my $loading_threads = threads->create(\&loading_animation, $process_name);
+				$loading_threads->detach();
 				$processed = 2;
 			}
 			# This case if the daemon tell the shell to wait for PID to term.
