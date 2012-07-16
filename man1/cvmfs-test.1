@@ -1,0 +1,78 @@
+.\" Process this file with
+.\" groff -man -Tascii foo.1
+.\"
+.TH cvmfs-test 1 "July 2012" Linux "User Manuals"
+.SH NAME
+cvmfs-test \- Test cvmfs features.
+.SH SYNOPSIS
+.B cvmfs [--i] [--c | --command
+.I command
+.B ]
+.SH DESCRIPTION
+.B cvmfs-test
+framework to test the behaviour of
+.B CernVM File System.
+It's used to check regression in newer
+version of the software and to test new features.
+.SH OPTIONS
+.IP --i
+Start it in interactive mode.
+When you start it in interactive mode, you
+will be presented with a shell that will accept
+several commands. Type
+.B help
+to find a list of available commands. This is the
+default behaviour when
+.B cvmfs-test
+is invoked without any option.
+.IP "--c command | --command command"
+Execute 
+.B command
+and exit. Where
+.B command
+is one of the command accepted by the shell
+during an interactive session.
+.SH FILES
+.I /etc/foo.conf
+.RS
+The system wide configuration file. See
+.BR foo (5)
+for further details.
+.RE
+.I ~/.foorc
+.RS
+Per user configuration file. See
+.BR foo (5)
+for further details.
+.SH ENVIRONMENT
+.IP FOOCONF
+If non-null the full pathname for an alternate system wide
+.IR foo.conf .
+Overridden by the
+.B -c
+option.
+.SH DIAGNOSTICS
+The following diagnostics may be issued on stderr:
+ 
+Bad magic number.
+.RS
+The input file does not look like an archive file.
+.RE
+Old style baz segments.
+.RS
+.B foo
+can only handle new style baz segments. COBOL
+object libraries are not supported in this version.
+.SH BUGS
+The command name should have been chosen more carefully
+to reflect its purpose.
+.SH AUTHOR
+Francesco Ruvolo <ruvolof
+.B at
+gmail
+.B dot
+com>
+.SH "SEE ALSO"
+.BR bar (1),
+.BR foo (5),
+.BR xyzzy (1)

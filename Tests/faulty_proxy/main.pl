@@ -149,7 +149,7 @@ if (defined ($pid) and $pid == 0) {
 	    print_to_fifo($outputfifo, "Able to mount repo with server timeout configuration... WRONG.\n");
 	}
 	else {
-	    print_to_fifo($outputfifo, "Unable to mount the repo with server timeout configuration... OK!\n");
+	    print_to_fifo($outputfifo, "Unable to mount the repo with server timeout configuration... OK.\n");
 	}
 	
 	@pids = killing_services($socket, @pids);

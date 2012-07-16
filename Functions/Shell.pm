@@ -21,7 +21,7 @@ use Time::HiRes qw(sleep);
 # Next lines are needed to export subroutines to the main package
 use base 'Exporter';
 use vars qw/ @EXPORT_OK /;
-@EXPORT_OK = qw(check_daemon check_command start_daemon get_daemon_output);
+@EXPORT_OK = qw(check_daemon check_command start_daemon get_daemon_output exit_shell);
 
 # The next line is here to help me find the directory of the script
 # if you have a better method, let me know.
@@ -133,11 +133,17 @@ sub loading_animation {
 	# Disabling STDOUT buffer
 	STDOUT->autoflush;
 	
+	# Making cursos invisible
+	system('tput civis');
+	
 	while (check_process($process_name)) {
 		print $char[$i % 4] . "\b";
 		sleep 0.2;
 		$i++;
 	}
+	
+	# Making cursor visible again
+	system('tput cnorm');
 }
 
 # This function will be use to get test output from the FIFO.
@@ -310,7 +316,10 @@ sub restart_daemon {
 
 # This functions will close the shell after closing socket and terminate ZeroMQ context
 sub exit_shell {
-	if (check_daemon()) {
+	# The shell will pass a true value when it's called in non interactive mode
+	# so it will force the closure of the daemon.
+	my $force = shift;
+	if (check_daemon() and !$force) {
 		print "The daemon's still running, would you like to stop it before exiting? [Y/n] ";
 		my $stop_it = STDIN->getline;
 		unless ($stop_it eq "n\n" or $stop_it eq "N\n") {
@@ -323,6 +332,10 @@ sub exit_shell {
 		}
 	}
 	else {
+		if ($force) {
+			send_shell_msg('stop');
+			get_daemon_output();
+		}
 		close_shell_socket();
 		term_shell_ctxt();
 	}
