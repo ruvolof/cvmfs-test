@@ -5,12 +5,15 @@
 .SH NAME
 cvmfs-test \- Test cvmfs features.
 .SH SYNOPSIS
-.B cvmfs [--i] [--c | --command
+.B cvmfs-test [--i] [--c | --command
 .I command
 .B ]
+.br
+At the end of this man pages you'll find some actual
+usage examples.
 .SH DESCRIPTION
 .B cvmfs-test
-framework to test the behaviour of
+is framework to test the behaviour of
 .B CernVM File System.
 It's used to check regression in newer
 version of the software and to test new features.
@@ -30,49 +33,68 @@ Execute
 .B command
 and exit. Where
 .B command
-is one of the command accepted by the shell
-during an interactive session.
-.SH FILES
-.I /etc/foo.conf
-.RS
-The system wide configuration file. See
-.BR foo (5)
-for further details.
-.RE
-.I ~/.foorc
-.RS
-Per user configuration file. See
-.BR foo (5)
-for further details.
-.SH ENVIRONMENT
-.IP FOOCONF
-If non-null the full pathname for an alternate system wide
-.IR foo.conf .
-Overridden by the
-.B -c
+is one of the available test listed below.
+If you want to pass any argument to the test, you should
+enclose the whole command within double quote.
+.SH TEST LIST
+.IP dns_timeout
+Check if cvmfs respect timeout settings during dns request.
+.IP faulty_proxy
+Check if cvmfs mounts a repo with crap files.
+.IP full_cache
+Check how many bytes cvmfs transfers before stop a malicious download.
+.IP ipv6_fallback
+Check if cvmfs can work with ipv6 and if it fall back
+to ipv4 if ipv6 fails.
+.IP repo_signature
+Check how cvmfs behave with wrong signature or hash on
+repository files.
+.IP short_ttl
+Check if cvmfs is able to mount a repo from cache and if
+it remount it from live connection after 4 minutes.
+.SH ADD A NEW TEST
+Everytime you invoke a command within the shell,
+this is what actually happens: the shell search for a folder
+named as your command inside the directory
+.B path/to/framework/Tests
+or any subfolder,
+if it finds such a folder, it will search for a file called
+main.pl and will launch it.
+.br
+.br
+Adding a new test is easy as create a new folder, put a main.pl
+file inside it and invoke the folder name. Of course, for a better
+integration with the whole system you should follow
+some guide lines. Invoke the command
+.B skeleton
+to find out where the skeleton file is installed in your
+system. Have a look to that file. It's well commented and
+cover all possibile case and scenarios. Use it as a model to write
+your own test.
+.br
+Moreover, every test must be accompanied by an
+.B help
+file which contains both short and long description
+for your test, together with any option the script accepts.
+.SH EXAMPLES
+.IP "cvmfs-test --i"
+Start the test framework in interactive mode.
+.IP "cvmfs-test --c faulty_proxy"
+Start the faulty_proxy test, wait for output and exit.
+.IP "cvmfs-test --c \[lq]faulty_proxy --no-clean\[rq]"
+Same as above, but adding options to the test. Note the
+double quote to tell the shell that the whole string is the argument
+of  the
+.B --c
 option.
-.SH DIAGNOSTICS
-The following diagnostics may be issued on stderr:
- 
-Bad magic number.
-.RS
-The input file does not look like an archive file.
-.RE
-Old style baz segments.
-.RS
-.B foo
-can only handle new style baz segments. COBOL
-object libraries are not supported in this version.
-.SH BUGS
-The command name should have been chosen more carefully
-to reflect its purpose.
+.IP "cvmfs-test --c \[lq]help faulty_proxy\[rq]"
+Retrieve options for faulty_proxy test.
+.SH BUG
+ipv6_fallback test doesn't work because perl ipv6 implementation
+is still buggy.
 .SH AUTHOR
 Francesco Ruvolo <ruvolof
 .B at
 gmail
 .B dot
 com>
-.SH "SEE ALSO"
-.BR bar (1),
-.BR foo (5),
-.BR xyzzy (1)
