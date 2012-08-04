@@ -89,7 +89,7 @@ if (defined ($pid) and $pid == 0) {
 	print "Done.\n";
 	
 	print '-'x30 . 'IPV6_DIRECT' . '-'x30 . "\n";
-	# Configurin cvmfs for ipv6 direct usage
+	# Configuring cvmfs for ipv6 direct usage
 	print 'Configuring cvmfs... ';
 	system("sudo $Bin/config_cvmfs_nodns.sh");
 	print "Done.\n";
@@ -161,10 +161,10 @@ if (defined ($pid) and $pid == 0) {
 	}
 	
 	if ($ipv4_fallback == 1) {
-	    print_to_fifo($outputfifo, "Able to mount the repo with wrong ipv6 and good ipv4... OK.\n");
+	    print_to_fifo($outputfifo, "Able to mount the repo with wrong ipv6 and good ipv4... OK.\n", "SNDMORE\n");
 	}
 	else {
-	    print_to_fifo($outputfifo, "Unable to mount the repo with wrong ipv6 and good ipv4... WRONG.\n");
+	    print_to_fifo($outputfifo, "Unable to mount the repo with wrong ipv6 and good ipv4... WRONG.\n", "SNDMORE\n");
 	}	
 
 	@pids = killing_services($socket, @pids);
@@ -183,6 +183,8 @@ if (defined ($pid) and $pid == 0) {
 	
 	# Closing socket
 	close_test_socket($socket, $ctxt);
+	
+	print_to_fifo($outputfifo, "END\n");
 }
 
 # This will be ran by the main script.

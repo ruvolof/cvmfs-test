@@ -35,7 +35,7 @@ sub init
 	map { $self->{$_} = (exists $opts{$_} ? $opts{$_} : $defaults{$_}) }
 		keys %defaults;
 	
-	$self->{'server'} = HTTP::AppServer::Base->new($self->{'ServerPort'});
+	$self->{'server'} = HTTP::AppServer::Base->new($self->{'ServerPort'}, Socket::AF_INET6);
 
 	return $self;
 }

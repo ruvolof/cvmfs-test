@@ -53,6 +53,7 @@ repository files.
 Check if cvmfs is able to mount a repo from cache and if
 it remount it from live connection after 4 minutes.
 .SH ADD A NEW TEST
+.PP 
 Everytime you invoke a command within the shell,
 this is what actually happens: the shell search for a folder
 named as your command inside the directory
@@ -60,8 +61,7 @@ named as your command inside the directory
 or any subfolder,
 if it finds such a folder, it will search for a file called
 main.pl and will launch it.
-.br
-.br
+.PP 
 Adding a new test is easy as create a new folder, put a main.pl
 file inside it and invoke the folder name. Of course, for a better
 integration with the whole system you should follow
@@ -71,7 +71,7 @@ to find out where the skeleton file is installed in your
 system. Have a look to that file. It's well commented and
 cover all possibile case and scenarios. Use it as a model to write
 your own test.
-.br
+.PP
 Moreover, every test must be accompanied by an
 .B help
 file which contains both short and long description

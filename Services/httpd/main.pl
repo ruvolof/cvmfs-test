@@ -1,6 +1,5 @@
 use strict;
 use warnings;
-use IO::Socket::IP -register;
 use FindBin qw($Bin);
 use lib "$Bin";
 use HTTP::AppServer;

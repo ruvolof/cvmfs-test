@@ -199,10 +199,10 @@ if (defined ($pid) and $pid == 0) {
 	}	
 	
 	if ($garbage_zlib == 1) {
-	    print_to_fifo($outputfifo, "Able to mount the repo with garbage zlib... WRONG.\n");
+	    print_to_fifo($outputfifo, "Able to mount the repo with garbage zlib... WRONG.\n", "SNDMORE\n");
 	}
 	else {
-	    print_to_fifo($outputfifo, "Unable to mount the repo with garbage zlib... OK.\n");
+	    print_to_fifo($outputfifo, "Unable to mount the repo with garbage zlib... OK.\n", "SNDMORE\n");
 	}
 	
 	print 'Restoring data chunk backup... ';
@@ -215,6 +215,8 @@ if (defined ($pid) and $pid == 0) {
 	restart_cvmfs_services();
 	
 	close_test_socket($socket, $ctxt);
+	
+	print_to_fifo($outputfifo, "END\n");
 }
 
 # This will be ran by the main script.

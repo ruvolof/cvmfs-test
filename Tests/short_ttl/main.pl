@@ -173,17 +173,19 @@ if (defined ($pid) and $pid == 0) {
 		print "Done.\n";
 		
 		if ($remount_successful <= 60 and $remount_successful >= 55) {
-			print_to_fifo($outputfifo, "TTL after $offset minutes was $remount_successful... OK.\n");
+			print_to_fifo($outputfifo, "TTL after $offset minutes was $remount_successful... OK.\n", "SNDMORE\n");
 		}
 		else {
-			print_to_fifo($outputfifo, "TTL after $offset minutes was $remount_successful... WRONG.\n");
+			print_to_fifo($outputfifo, "TTL after $offset minutes was $remount_successful... WRONG.\n", "SNDMORE\n");
 		}
 	}
 	else {
-		print_to_fifo($outputfifo, "Remount test skipped.\n");
+		print_to_fifo($outputfifo, "Remount test skipped.\n", "SNDMORE\n");
 	}
 	
 	close_test_socket($socket, $ctxt);
+	
+	print_to_fifo($outputfifo, "END\n");
 }
 
 # This will be ran by the main script.

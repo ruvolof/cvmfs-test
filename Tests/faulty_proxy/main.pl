@@ -146,15 +146,17 @@ if (defined ($pid) and $pid == 0) {
 	}
 	
 	if ($server_timeout == 1) {
-	    print_to_fifo($outputfifo, "Able to mount repo with server timeout configuration... WRONG.\n");
+	    print_to_fifo($outputfifo, "Able to mount repo with server timeout configuration... WRONG.\n", "SNDMORE\n");
 	}
 	else {
-	    print_to_fifo($outputfifo, "Unable to mount the repo with server timeout configuration... OK.\n");
+	    print_to_fifo($outputfifo, "Unable to mount the repo with server timeout configuration... OK.\n", "SNDMORE\n");
 	}
 	
 	@pids = killing_services($socket, @pids);
 
 	restart_cvmfs_services();	
+	
+	print_to_fifo($outputfifo, "END\n");
 }
 
 # This will be ran by the main script.

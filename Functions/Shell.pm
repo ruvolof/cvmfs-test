@@ -176,7 +176,7 @@ sub get_test_output {
 			print color 'reset';
 		}
 		else {
-			print $return_line unless $return_line eq "SNDMORE\n";
+			print $return_line unless $return_line eq "SNDMORE\n" or $return_line eq "END\n";
 		}
 	}
 	close_fifo($return_fh);

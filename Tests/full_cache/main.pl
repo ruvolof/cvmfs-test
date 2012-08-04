@@ -136,10 +136,10 @@ if (defined ($pid) and $pid == 0) {
 	
 	sleep 2;
 	if ($transferred_bytes < $cvmfsfaulty_size / 50) {
-		print_to_fifo($outputfifo, "Only $transferred_kbytes KB on $cvmfsfaulty_ksize KB were received... OK.\n");
+		print_to_fifo($outputfifo, "Only $transferred_kbytes KB on $cvmfsfaulty_ksize KB were received... OK.\n", "SNDMORE\n");
 	}
 	else {
-		print_to_fifo($outputfifo, "$transferred_kbytes KB were received... WRONG.\n");
+		print_to_fifo($outputfifo, "$transferred_kbytes KB were received... WRONG.\n", "SNDMORE\n");
 	}
 	
 	@pids = killing_services($socket, @pids);
@@ -147,6 +147,8 @@ if (defined ($pid) and $pid == 0) {
 	restart_cvmfs_services();
 	
 	close_test_socket($socket, $ctxt);
+	
+	print_to_fifo($outputfifo, "END\n");
 }
 
 # This will be ran by the main script.

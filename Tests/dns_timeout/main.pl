@@ -172,10 +172,10 @@ if (defined ($pid) and $pid == 0) {
 	$server_timeout = check_mount_timeout("/cvmfs/$repo_name", 5);
 	
 	if ($server_timeout <= 10 and $server_timeout >=8) {
-	    print_to_fifo($outputfifo, "Server timeout took $server_timeout seconds to fail... OK.\n");
+	    print_to_fifo($outputfifo, "Server timeout took $server_timeout seconds to fail... OK.\n", "SNDMORE\n");
 	}
 	else {
-	    print_to_fifo($outputfifo, "Server timeout took $server_timeout seconds to fail... WRONG.\n");
+	    print_to_fifo($outputfifo, "Server timeout took $server_timeout seconds to fail... WRONG.\n", "SNDMORE\n");
 	}	
 
 	@pids = killing_services($socket, @pids);
@@ -193,6 +193,8 @@ if (defined ($pid) and $pid == 0) {
 	print "Done.\n";
 	
 	close_test_socket($socket, $ctxt);
+	
+	print_to_fifo($outputfifo, "END\n");
 }
 
 

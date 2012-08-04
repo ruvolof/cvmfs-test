@@ -83,13 +83,16 @@ if (defined ($pid) and $pid == 0) {
 	}
 	
 	if ($mount_successful == 1) {
-	    print_to_fifo($outputfifo, "Able to mount the repo with right configuration... OK.\n");
+	    print_to_fifo($outputfifo, "Able to mount the repo with right configuration... OK.\n", "SNDMORE\n");
 	}
 	else {
-	    print_to_fifo($outputfifo, "Unable to mount the repo with right configuration... WRONG.\n");
+	    print_to_fifo($outputfifo, "Unable to mount the repo with right configuration... WRONG.\n", "SNDMORE\n");
 	}
 	
 	close_test_socket($socket, $ctxt);
+	
+	sleep 2;
+	print_to_fifo($outputfifo, "END\n");
 }
 
 # This will be ran by the main script.
