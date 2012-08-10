@@ -3,15 +3,12 @@ use warnings;
 use ZeroMQ qw/:all/;
 use FindBin qw($Bin);
 use Getopt::Long;
-use Tests::Common qw(recursive_rm multiple_rm);
-
-my $socket_path = '/tmp/server.ipc';
-my $socket_protocol = 'ipc://';
+use Tests::Common qw(recursive_rm multiple_rm open_test_socket close_test_socket);
 
 # This will be the name for the socket. This socket isn't supposed to receive any message.
 # But the server will still try to send them to it. When the server will realize, that this socket
 # isn't listening, the server will discard them.
-my $name = 'CLEAN';
+my $testname = 'CLEAN';
 
 # Variables to store commandline options switch
 my $deep = undef;
@@ -57,18 +54,13 @@ if (defined($deep)) {
 }
 
 # Opening the socket to launch 'killall' command.
-my $ctxt = ZeroMQ::Context->new();
-my $socket = $ctxt->socket(ZMQ_DEALER) || die "Couldn't create socket: $!.\n"; 
-$socket->setsockopt(ZMQ_IDENTITY, $name);
-
-$socket->connect( "${socket_protocol}${socket_path}" );
+my ($socket, $ctxt) = open_test_socket($testname);
 
 print 'Killing all existing processes... ';
 $socket->send('killall');
 print "Done.\n";
 
 # Closing the socket, we no longer need it.
-$socket->close();
-$ctxt->term();
+close_test_socket($socket, $ctxt);
 
 exit 0;

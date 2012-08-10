@@ -289,8 +289,8 @@ sub multiple_rm {
 }
 
 # This variables will be used for the socket
-my $socket_protocol = 'ipc://';
-my $socket_path = '/tmp/server.ipc';
+my $socket_protocol = 'tcp://';
+my $socket_path = '127.0.0.1:6650';
 
 # This function will open and return the socket object used to send messages
 # to the daemon. It will aslo set the socket identity.
@@ -316,6 +316,23 @@ sub close_test_socket {
 
 	$socket->close();
 	$ctxt->term();
+}
+
+# This two variables are used for the socket to send test output to the shell
+my $shellout_protocol = 'tcp://';
+my $shellout_path = '127.0.0.1:6651';
+
+# This function will open the socket to send the output to the shell
+sub open_shellout_socket {
+	
+	# Opening the socket to communicate with the server and setting is identity.
+	print 'Opening the socket to communicate with the shell... ';
+	my $ctxt = ZeroMQ::Context->new();
+	my $socket = $ctxt->socket(ZMQ_PUSH);
+	$socket->connect( "${socket_protocol}${socket_path}" );
+	print "Done.\n";
+	
+	return ($socket, $ctxt);
 }
 
 1;

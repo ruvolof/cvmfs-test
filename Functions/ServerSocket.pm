@@ -15,8 +15,8 @@ use vars qw/ @EXPORT_OK /;
 @EXPORT_OK = qw(start_socket receive_msg send_msg end_msg close_socket term_ctxt);
 
 # Modify this variables to change the path to the socket
-my $socket_path = '/tmp/server.ipc';
-my $socket_protocol = 'ipc://';
+my $socket_path = '*:6650';
+my $socket_protocol = 'tcp://';
 
 # Variables shared among all functions
 my $ctxt;
@@ -29,9 +29,11 @@ sub start_socket {
 	$socket = ZeroMQ::Raw::zmq_socket($ctxt, ZMQ_ROUTER) || die "Couldn't create socket.\n";
 	ZeroMQ::Raw::zmq_setsockopt($socket, ZMQ_LINGER, 0);
 	
-
 	my $rc = ZeroMQ::Raw::zmq_bind( $socket, "${socket_protocol}${socket_path}" );
-	system("chmod 777 $socket_path");
+	
+	if ($socket_protocol =~ m/^ipc:\/\/$/) {
+		system("chmod 777 $socket_path");
+	}
 	
 	if ($rc != 0) {
 		return 0;

@@ -129,7 +129,7 @@ if (defined ($pid) and $pid == 0) {
 	sleep 5;
 	print "Done.\n";
 
-	# For this first test, we should be able to mount the repo. So, if possibile, setting its variable
+	# For this second test, we should be able to mount the repo. So, if possibile, setting its variable
 	# to 1.
 	if (check_repo("/cvmfs/$repo_name")){
 	    $ipv6_only = 1;

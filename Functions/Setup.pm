@@ -20,23 +20,32 @@ use vars qw/ @EXPORT_OK /;
 @EXPORT_OK = qw(setup fixperm);
 
 sub setup {
-	if (!Functions::Shell::check_daemon()){
-		print "You will need to be in the sudoers file to complete the setup process. Are you? [N,y]";
-		my $answer = <STDIN>;
-		
-		my $compile_success = compile_wrapper();
-		my $user_added = create_user();
-		my $wrapper_chown = chown_wrapper();
-		my $wrapper_setuid = setuid_wrapper();
-		my $log_folder = create_log_folder();
-		my $add_to_sudoers = add_to_sudoers();
+	my $sudoers = shift;
+	my $fixperm = shift;
 	
-		print "\n";
-		print '_' x 80 . "\n";
-		print "Setup complete. Run 'fixperm' to be sure all permission are set correctly.\n";
-		print "You can type 'help fixperm' to show what this command does.\n";
-		print '_' x 80 . "\n";
+	if (!Functions::Shell::check_daemon()){
+		unless (defined($sudoers) and $sudoers == 1) {
+			print "You will need to be in the sudoers file to complete the setup process. Are you? [N,y]";
+			my $answer = <STDIN>;
+			unless ($answer eq "y\n" or $answer eq "Y\n") { return }
+		}			
+			my $compile_success = compile_wrapper();
+			my $user_added = create_user();
+			my $wrapper_chown = chown_wrapper();
+			my $wrapper_setuid = setuid_wrapper();
+			my $log_folder = create_log_folder();
+			my $add_to_sudoers = add_to_sudoers();
 		
+		unless(defined($fixperm) and $fixperm == 1) {
+			print "\n";
+			print '_' x 80 . "\n";
+			print "Setup complete. Run 'fixperm' to be sure all permission are set correctly.\n";
+			print "You can type 'help fixperm' to show what this command does.\n";
+			print '_' x 80 . "\n";
+		}
+		else {
+			fixperm();
+		}			
 	}
 	else {
 		print "The daemon is running. Can't run setup while the daemon is running.\nStop it and retry.\n";

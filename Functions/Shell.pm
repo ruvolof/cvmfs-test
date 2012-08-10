@@ -13,8 +13,7 @@ use Proc::Daemon;
 use Fcntl ':mode';
 use Getopt::Long;
 use Functions::Setup qw(setup fixperm);
-use Functions::ShellSocket qw(start_shell_socket send_shell_msg receive_shell_msg close_shell_socket term_shell_ctxt);
-use Functions::FIFOHandle qw(open_rfifo close_fifo make_fifo unlink_fifo);
+use Functions::ShellSocket qw(start_shell_socket send_shell_msg receive_shell_msg close_shell_socket term_shell_ctxt open_testout_socket receive_test_msg close_testsocket close_testctxt);
 use Term::ANSIColor;
 use Time::HiRes qw(sleep);
 
@@ -148,21 +147,14 @@ sub loading_animation {
 
 # This function will be use to get test output from the FIFO.
 sub get_test_output {
-	# Retrieving FIFO path
-	my $fifo = shift;
+	# Opening the socket to retrieve output
+	open_testout_socket();
 	
-	# Will be set to 1 if more output lines are coming
-	my $continue = 0;
-	
-	# Creating a FIFO. The shell will wait for some output there.
-	make_fifo($fifo);
-	my $return_fh = open_rfifo($fifo);
 	#Be careful: this is blocking. Be sure to not send READ_RETURN_CODE signal to the shell
-	# if you are not going to write something in the FIFO. The shell will hang.
-	while (my $return_line = $return_fh->getline) {
-		if ($return_line eq "SNDMORE\n") {
-			$continue = 1;
-		}
+	# if you are not going to send something through the socket. The shell will hang.
+	my $return_line = '';
+	while ($return_line ne "END\n") {
+		$return_line = receive_test_msg();
 		
 		# Coloring the output in green or red
 		if ($return_line =~ m/OK.$/) {
@@ -176,15 +168,13 @@ sub get_test_output {
 			print color 'reset';
 		}
 		else {
-			print $return_line unless $return_line eq "SNDMORE\n" or $return_line eq "END\n";
+			print $return_line unless $return_line eq "END\n";
 		}
 	}
-	close_fifo($return_fh);
-	unlink_fifo($fifo);
 	
-	if ($continue) {
-		get_test_output($fifo);
-	}
+	# Closing the socket and the context
+	close_testsocket();
+	close_testctxt();
 }
 
 # This function will call a loop to wait for a complex output from the daemon
@@ -209,9 +199,7 @@ sub get_daemon_output {
 			}
 			# This case if the daemon tell the shell to wait for PID to term.
 			elsif ($_ =~ m/READ_RETURN_CODE/) {
-				my $fifo = (split /:/, $_)[-1];
-				chomp($fifo);
-				get_test_output($fifo);
+				get_test_output();
 				$processed = 2;
 			}
 			# Other cases with special signal that are useless for the shell.
