@@ -45,6 +45,9 @@ if (defined ($pid) and $pid == 0) {
 
 	# Opening the socket to communicate with the server and setting is identity.
 	my ($socket, $ctxt) = open_test_socket($testname);
+	
+	# Opening the socket to send the output to the shell
+	my ($shell_socket, $shell_ctxt) = open_shellout_socket();
 
 	# Cleaning the environment if --no-clean is undef.
 	# See 'Tests/clean/main.pl' if you want to know what this command does.
@@ -83,16 +86,16 @@ if (defined ($pid) and $pid == 0) {
 	}
 	
 	if ($mount_successful == 1) {
-	    print_to_fifo($outputfifo, "Able to mount the repo with right configuration... OK.\n", "SNDMORE\n");
+	    $shell_socket->send("Able to mount the repo with right configuration... OK.\n");
 	}
 	else {
-	    print_to_fifo($outputfifo, "Unable to mount the repo with right configuration... WRONG.\n", "SNDMORE\n");
+	    $shell_socket->send("Unable to mount the repo with right configuration... WRONG.\n");
 	}
 	
 	close_test_socket($socket, $ctxt);
 	
-	sleep 2;
-	print_to_fifo($outputfifo, "END\n");
+	$shell_socket->send("END\n");
+	close_test_socket($shell_socket, $shell_ctxt);
 }
 
 # This will be ran by the main script.

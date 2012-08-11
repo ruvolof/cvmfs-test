@@ -1,8 +1,7 @@
 use strict;
 use warnings;
 use ZeroMQ qw/:all/;
-use Functions::FIFOHandle qw(print_to_fifo);
-use Tests::Common qw(get_daemon_output killing_services check_repo setup_environment restart_cvmfs_services set_stdout_stderr open_test_socket close_test_socket);
+use Tests::Common qw(get_daemon_output killing_services check_repo setup_environment restart_cvmfs_services set_stdout_stderr open_test_socket close_test_socket open_shellout_socket);
 use Getopt::Long;
 use FindBin qw($Bin);
 
@@ -67,6 +66,9 @@ if (defined ($pid) and $pid == 0) {
 
 	# Opening the socket to communicate with the server and setting is identity.
 	my ($socket, $ctxt) = open_test_socket($testname);
+	
+	# Opening the socket to send the output to the shell
+	my ($shell_socket, $shell_ctxt) = open_shellout_socket();
 
 	# Cleaning the environment if --no-clean is undef.
 	# See 'Tests/clean/main.pl' if you want to know what this command does.
@@ -121,10 +123,10 @@ if (defined ($pid) and $pid == 0) {
 	}
 	
 	if ($mount_successful == 1) {
-		print_to_fifo($outputfifo, "Able to mount the repo with very large garbage zlib... WRONG.\n", "SNDMORE\n");
+		$shell_socket->send("Able to mount the repo with very large garbage zlib... WRONG.\n");
 	}
 	else {
-		print_to_fifo($outputfifo, "Unable to mount the repo with very large garbage zlib... OK.\n", "SNDMORE\n");
+		$shell_socket->send("Unable to mount the repo with very large garbage zlib... OK.\n");
 	}
 	
 	# Checking how much bytes were received
@@ -136,10 +138,10 @@ if (defined ($pid) and $pid == 0) {
 	
 	sleep 2;
 	if ($transferred_bytes < $cvmfsfaulty_size / 50) {
-		print_to_fifo($outputfifo, "Only $transferred_kbytes KB on $cvmfsfaulty_ksize KB were received... OK.\n", "SNDMORE\n");
+		$shell_socket->send("Only $transferred_kbytes KB on $cvmfsfaulty_ksize KB were received... OK.\n");
 	}
 	else {
-		print_to_fifo($outputfifo, "$transferred_kbytes KB were received... WRONG.\n", "SNDMORE\n");
+		$shell_socket->send("$transferred_kbytes KB were received... WRONG.\n");
 	}
 	
 	@pids = killing_services($socket, @pids);
@@ -148,7 +150,8 @@ if (defined ($pid) and $pid == 0) {
 	
 	close_test_socket($socket, $ctxt);
 	
-	print_to_fifo($outputfifo, "END\n");
+	$shell_socket->send("END\n");
+	close_test_socket($shell_socket, $shell_ctxt);
 }
 
 # This will be ran by the main script.

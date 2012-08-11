@@ -13,7 +13,7 @@ use Proc::Daemon;
 use Fcntl ':mode';
 use Getopt::Long;
 use Functions::Setup qw(setup fixperm);
-use Functions::ShellSocket qw(start_shell_socket send_shell_msg receive_shell_msg close_shell_socket term_shell_ctxt open_testout_socket receive_test_msg close_testsocket close_testctxt);
+use Functions::ShellSocket qw(connect_shell_socket send_shell_msg receive_shell_msg close_shell_socket term_shell_ctxt bind_shell_socket);
 use Term::ANSIColor;
 use Time::HiRes qw(sleep);
 
@@ -42,6 +42,8 @@ sub check_process {
 # or by the daemon. If the command is bundled in the shell, it launches the
 # corresponding function.
 sub check_command {
+	my $socket = shift;
+	my $ctxt = shift;
 	# Retrieving arguments: command
 	my $command = shift;
 	
@@ -50,13 +52,13 @@ sub check_command {
 	
 	# Switching the value of $command
 	for ($command){
-		if ($_ eq 'exit' or $_ eq 'quit' or $_ eq 'q') { exit_shell() }
+		if ($_ eq 'exit' or $_ eq 'quit' or $_ eq 'q') { exit_shell($socket, $ctxt) }
 		elsif ($_ eq 'status') { print_status(); $executed = 1 }
 		elsif ($_ =~ m/^start\s*.*/ ) { start_daemon($command); $executed = 1 }
 		elsif ($_ =~ m/^help\s*.*/ or $_ =~ m/^h\s.*/) { help($command), $executed = 1 }
 		elsif ($_ eq 'setup' ) { setup(); $executed = 1 }
 		elsif ($_ eq 'fixperm') { fixperm(); $executed = 1 }
-		elsif ($_ =~ m/^restart\s*.*/ ) { restart_daemon($command); $executed = 1 }
+		elsif ($_ =~ m/^restart\s*.*/ ) { ($socket, $ctxt) = restart_daemon($socket, $ctxt, $command); $executed = 1 }
 	}
 	
 	# If the daemon is not running and no command was executed, print on screen a message
@@ -66,7 +68,7 @@ sub check_command {
 	}
 	
 	# Returning the value of $executed to check if the command was found and executed
-	return $executed;
+	return ($executed, $socket, $ctxt);
 }
 
 # This function will print the current status of the daemon
@@ -148,13 +150,13 @@ sub loading_animation {
 # This function will be use to get test output from the FIFO.
 sub get_test_output {
 	# Opening the socket to retrieve output
-	open_testout_socket();
+	my ($socket, $ctxt) = bind_shell_socket();
 	
 	#Be careful: this is blocking. Be sure to not send READ_RETURN_CODE signal to the shell
 	# if you are not going to send something through the socket. The shell will hang.
 	my $return_line = '';
 	while ($return_line ne "END\n") {
-		$return_line = receive_test_msg();
+		$return_line = receive_shell_msg($socket);
 		
 		# Coloring the output in green or red
 		if ($return_line =~ m/OK.$/) {
@@ -173,22 +175,24 @@ sub get_test_output {
 	}
 	
 	# Closing the socket and the context
-	close_testsocket();
-	close_testctxt();
+	$socket = close_shell_socket($socket);
+	$ctxt = term_shell_ctxt($ctxt);
 }
 
 # This function will call a loop to wait for a complex output from the daemon
 sub get_daemon_output {
+	my $socket = shift;
+	my $ctxt = shift;
 	my $reply = '';
 	while ($reply ne "END\n") {
-		$reply = receive_shell_msg();
+		$reply = receive_shell_msg($socket);
 		# Switch on the value of $reply to catch any special sinagl from the daemon.
 		for ($reply) {
 			# This variable will be used to record if the shell has got any special signal.
 			# Most of special signal will not be printed as output part.
 			my $processed = 0;
 			# This case if the daemon has stopped itself
-			if ($_ =~ m/DAEMON_STOPPED/) { close_shell_socket(); term_shell_ctxt(); $processed = 1 }
+			if ($_ =~ m/DAEMON_STOPPED/) { $socket = close_shell_socket($socket); $ctxt = term_shell_ctxt($ctxt); $processed = 1 }
 			elsif ($_ =~ m/PROCESSING/) {
 				my $process_name = (split /:/, $_)[-1];
 				chomp($process_name);
@@ -269,9 +273,10 @@ sub start_daemon {
 			
 			# Opening the socket to communicate with the server
 			print "Opening the socket... ";
-			my $socket_started = start_shell_socket();
-			if ($socket_started) {
+			my ($socket, $ctxt) = connect_shell_socket();
+			if ($socket) {
 				print "Done.\n";
+				return ($socket, $ctxt);
 			}
 			else {
 				print "Failed.\n";
@@ -288,14 +293,17 @@ sub start_daemon {
 
 # This function will stop and restart the daemon
 sub restart_daemon {
+	my $socket = shift;
+	my $ctxt = shift;
 	# Retrieving options to pass to start_daemon
 	my $line = shift;
 	
 	if (check_daemon()) {
-		send_shell_msg("stop");
-		get_daemon_output();
+		send_shell_msg($socket, 'stop');
+		get_daemon_output($socket, $ctxt);
 		sleep 1;
-		start_daemon($line);
+		($socket, $ctxt) = start_daemon($line);
+		return ($socket, $ctxt);
 	}
 	else {
 		print "Daemon is not running. Type 'start' to run it.\n"
@@ -304,6 +312,8 @@ sub restart_daemon {
 
 # This functions will close the shell after closing socket and terminate ZeroMQ context
 sub exit_shell {
+	my $socket = shift;
+	my $ctxt = shift;
 	# The shell will pass a true value when it's called in non interactive mode
 	# so it will force the closure of the daemon.
 	my $force = shift;
@@ -311,21 +321,21 @@ sub exit_shell {
 		print "The daemon's still running, would you like to stop it before exiting? [Y/n] ";
 		my $stop_it = STDIN->getline;
 		unless ($stop_it eq "n\n" or $stop_it eq "N\n") {
-			send_shell_msg('stop');
-			get_daemon_output();
+			send_shell_msg($socket, 'stop');
+			get_daemon_output($socket, $ctxt);
 		}
 		else {
-			close_shell_socket();
-			term_shell_ctxt();
+			$socket = close_shell_socket($socket);
+			$ctxt = term_shell_ctxt($ctxt);
 		}
 	}
 	else {
 		if ($force) {
-			send_shell_msg('stop');
-			get_daemon_output();
+			send_shell_msg($socket, 'stop');
+			get_daemon_output($socket, $ctxt);
 		}
-		close_shell_socket();
-		term_shell_ctxt();
+		$socket = close_shell_socket($socket);
+		$ctxt = term_shell_ctxt($ctxt);
 	}
 	
 	exit 0;

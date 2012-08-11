@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 use Functions::FIFOHandle qw(make_fifo unlink_fifo print_to_fifo open_rfifo close_fifo);
-use Tests::Common qw(set_stdout_stderr open_test_socket close_test_socket);
+use Tests::Common qw(set_stdout_stderr open_test_socket close_test_socket open_shellout_socket);
 use ZeroMQ qw/:all/;
 use File::Find;
 use Getopt::Long;
@@ -26,6 +26,8 @@ my $testname = 'DO_ALL';
 sub send_test_output {
 	# Retrieving FIFO path
 	my $fifo = shift;
+	# Retrieving socket path
+	my $shell_socket = shift;
 	
 	# Will be set to 1 if more output lines are coming
 	my $continue = 0;
@@ -42,13 +44,13 @@ sub send_test_output {
 		print $return_line unless $return_line eq "SNDMORE\n";
 		# Sending output to the shell. I'm always sending it back with SNDMORE option.
 		# I'll close the fifo definitely at the end of this test.
-		print_to_fifo($outputfifo, $return_line, "SNDMORE\n") unless $return_line eq "SNDMORE\n";
+		$shell_socket->send($return_line) unless $return_line eq "SNDMORE\n" or $return_line eq "END\n";
 	}
 	close_fifo($return_fh);
 	unlink_fifo($fifo);
 	
 	if ($continue) {
-		send_test_output($fifo);
+		send_test_output($fifo, $shell_socket);
 	}
 }
 
@@ -58,6 +60,7 @@ sub send_test_output {
 sub get_daemon_output {
 	# Retrieving socket to use
 	my $socket = shift;
+	my $shell_socket = shift;
 	
 	my ($data, $reply) = ('', '');
 	
@@ -66,13 +69,13 @@ sub get_daemon_output {
 		$data = $reply->data;
 		
 		if ($data =~ m/PROCESSING/) {
-			print_to_fifo($outputfifo, $data, "SNDMORE\n");
+			$shell_socket->send($data);
 		}
 		
 		if ($data =~ m/READ_RETURN_CODE/) {
 			my $fifo = (split /:/, $data)[-1];
 			chomp($fifo);
-			send_test_output($fifo);
+			send_test_output($fifo, $shell_socket);
 		}
 		
 		print $data if $data ne "END\n" and $data !~ m/READ_RETURN_CODE/;
@@ -88,6 +91,9 @@ if (defined ($pid) and $pid == 0) {
 	
 	# Opening the socket to communicate with the daemon
 	my ($socket, $ctxt) = open_test_socket($testname);
+	
+	# Opening the socket to send the output to the shell
+	my ($shell_socket, $shell_ctxt) = open_shellout_socket();
 	
 	# Array to store every main.pl files
 	my @main_pl;
@@ -109,13 +115,14 @@ if (defined ($pid) and $pid == 0) {
 		
 		my $command = (split /\//, $_)[-2];
 		$socket->send("$command --fifo $test_fifo");
-		get_daemon_output($socket);
+		get_daemon_output($socket, $shell_socket);
 	}
 	
-	sleep 5;
-	print_to_fifo($outputfifo, "All tests processed.\n");
+	$shell_socket->send("All tests processed.\n");
+	$shell_socket->send("END\n");
 	
 	close_test_socket($socket, $ctxt);
+	close_test_socket($shell_socket, $shell_ctxt);
 }
 
 # This will be ran by the main script.

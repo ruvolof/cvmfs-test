@@ -2,7 +2,7 @@ use strict;
 use warnings;
 use ZeroMQ qw/:all/;
 use Functions::FIFOHandle qw(print_to_fifo);
-use Tests::Common qw(get_daemon_output killing_services check_repo setup_environment restart_cvmfs_services find_files recursive_mkdir open_test_socket close_test_socket set_stdout_stderr);
+use Tests::Common qw(get_daemon_output killing_services check_repo setup_environment restart_cvmfs_services find_files recursive_mkdir open_test_socket close_test_socket set_stdout_stderr open_shellout_socket);
 use File::Copy;
 use File::Find;
 use Getopt::Long;
@@ -53,6 +53,9 @@ if (defined ($pid) and $pid == 0) {
 	# Opening the socket to communicate with the server and setting is identity.
 	my ($socket, $ctxt) = open_test_socket($testname);
 	
+	# Opening the socket to send the output to the shell
+	my ($shell_socket, $shell_ctxt) = open_shellout_socket();
+	
 	# Cleaning the environment if --no-clean is undef.
 	# See 'Tests/clean/main.pl' if you want to know what this command does.
 	if (!defined($no_clean)) {
@@ -102,11 +105,10 @@ if (defined ($pid) and $pid == 0) {
 	}
 	
 	if ($mount_successful == 1) {
-		print "going to write...\n";
-	    print_to_fifo($outputfifo, "Able to mount the repo with active server... OK.\n", "SNDMORE\n");
+	    $shell_socket->send("Able to mount the repo with active server... OK.\n");
 	}
 	else {
-	    print_to_fifo($outputfifo, "Unable to mount the repo with active server... WRONG.\n", "SNDMORE\n");
+	    $shell_socket->send("Unable to mount the repo with active server... WRONG.\n");
 	}
 	
 	print '-'x30 . 'TTL_NORMAL' . '-'x30 . "\n";
@@ -116,10 +118,10 @@ if (defined ($pid) and $pid == 0) {
 	print "Done.\n";
 	
 	if ($ttl_normal <= 60 and $ttl_normal >= 55) {
-		print_to_fifo($outputfifo, "TTL for live connection was $ttl_normal... OK.\n", "SNDMORE\n");
+		$shell_socket->send("TTL for live connection was $ttl_normal... OK.\n");
 	}
 	else {
-		print_to_fifo($outputfifo, "TTL for live connection was $ttl_normal... WRONG.\n", "SNDMORE\n");
+		$shell_socket->send("TTL for live connection was $ttl_normal... WRONG.\n");
 	}
 	
 	print 'Unmounting cvmfs repo... ';
@@ -134,10 +136,10 @@ if (defined ($pid) and $pid == 0) {
 	}
 	
 	if ($mount_cache == 1) {
-		print_to_fifo($outputfifo, "Able to mount the repo from cache... OK.\n", "SNDMORE\n");
+		$shell_socket->send("Able to mount the repo from cache... OK.\n");
 	}
 	else {
-		print_to_fifo($outputfifo, "Unable to mount the repo from cache... WRONG.\n", "SNDMORE\n");
+		$shell_socket->send("Unable to mount the repo from cache... WRONG.\n");
 	}
 	
 	print '-'x30 . 'TTL_CACHE' . '-'x30 . "\n";
@@ -147,10 +149,10 @@ if (defined ($pid) and $pid == 0) {
 	print "Done.\n";
 	
 	if ($ttl_cache <= $expected_ttl and $ttl_cache >= 1) {
-		print_to_fifo($outputfifo, "TTL for cached connection was $ttl_cache... OK.\n", "SNDMORE\n");
+		$shell_socket->send("TTL for cached connection was $ttl_cache... OK.\n");
 	}
 	else {
-		print_to_fifo($outputfifo, "TTL for cached connection was $ttl_cache... WRONG.\n", "SNDMORE\n");
+		$shell_socket->send("TTL for cached connection was $ttl_cache... WRONG.\n");
 	}
 	
 	unless(defined($no_remount)) {
@@ -173,19 +175,20 @@ if (defined ($pid) and $pid == 0) {
 		print "Done.\n";
 		
 		if ($remount_successful <= 60 and $remount_successful >= 55) {
-			print_to_fifo($outputfifo, "TTL after $offset minutes was $remount_successful... OK.\n", "SNDMORE\n");
+			$shell_socket->send("TTL after $offset minutes was $remount_successful... OK.\n");
 		}
 		else {
-			print_to_fifo($outputfifo, "TTL after $offset minutes was $remount_successful... WRONG.\n", "SNDMORE\n");
+			$shell_socket->send("TTL after $offset minutes was $remount_successful... WRONG.\n");
 		}
 	}
 	else {
-		print_to_fifo($outputfifo, "Remount test skipped.\n", "SNDMORE\n");
+		$shell_socket->send("Remount test skipped.\n");
 	}
 	
 	close_test_socket($socket, $ctxt);
 	
-	print_to_fifo($outputfifo, "END\n");
+	$shell_socket->send("END\n");
+	close_test_socket($shell_socket, $shell_ctxt);
 }
 
 # This will be ran by the main script.

@@ -15,7 +15,7 @@ use base 'Exporter';
 use vars qw/ @EXPORT_OK /;
 @EXPORT_OK = qw(get_daemon_output killing_services check_repo setup_environment restart_cvmfs_services
 				 check_mount_timeout find_files recursive_mkdir recursive_rm open_test_socket close_test_socket
-				 set_stdout_stderr multiple_rm);
+				 set_stdout_stderr multiple_rm open_shellout_socket);
 
 # This function will set STDOUT and STDERR for forked process
 sub set_stdout_stderr {
@@ -288,15 +288,19 @@ sub multiple_rm {
 	}
 }
 
-# This variables will be used for the socket
-my $socket_protocol = 'tcp://';
-my $socket_path = '127.0.0.1:6650';
-
 # This function will open and return the socket object used to send messages
 # to the daemon. It will aslo set the socket identity.
 sub open_test_socket {
 	# Retrieving testname
 	my $testname = shift;
+	
+	my $socket_protocol = shift;
+	my $socket_path = shift;
+	
+	unless(defined($socket_protocol) and defined($socket_path)) {
+		$socket_protocol = 'tcp://';
+		$socket_path = '*:6650';
+	}
 	
 	# Opening the socket to communicate with the server and setting is identity.
 	print 'Opening the socket to communicate with the server... ';
@@ -318,12 +322,15 @@ sub close_test_socket {
 	$ctxt->term();
 }
 
-# This two variables are used for the socket to send test output to the shell
-my $shellout_protocol = 'tcp://';
-my $shellout_path = '127.0.0.1:6651';
-
 # This function will open the socket to send the output to the shell
 sub open_shellout_socket {
+	my $socket_protocol = shift;
+	my $socket_path = shift;
+	
+	unless(defined($socket_protocol) and defined($socket_path)) {
+		$socket_protocol = 'tcp://';
+		$socket_path = '127.0.0.1:6651';
+	}
 	
 	# Opening the socket to communicate with the server and setting is identity.
 	print 'Opening the socket to communicate with the shell... ';

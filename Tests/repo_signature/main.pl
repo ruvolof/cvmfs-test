@@ -1,8 +1,7 @@
 use strict;
 use warnings;
 use ZeroMQ qw/:all/;
-use Functions::FIFOHandle qw(print_to_fifo);
-use Tests::Common qw(get_daemon_output killing_services check_repo setup_environment restart_cvmfs_services find_files recursive_mkdir set_stdout_stderr open_test_socket close_test_socket);
+use Tests::Common qw(get_daemon_output killing_services check_repo setup_environment restart_cvmfs_services find_files recursive_mkdir set_stdout_stderr open_test_socket close_test_socket open_shellout_socket);
 use File::Copy;
 use File::Find;
 use Getopt::Long;
@@ -70,6 +69,9 @@ if (defined ($pid) and $pid == 0) {
 	# Opening the socket to communicate with the server and setting is identity.
 	my ($socket, $ctxt) = open_test_socket($testname);
 	
+	# Opening the socket to send the output to the shell
+	my ($shell_socket, $shell_ctxt) = open_shellout_socket();
+	
 	# Cleaning the environment if --no-clean is undef.
 	# See 'Tests/clean/main.pl' if you want to know what this command does.
 	if (!defined($no_clean)) {
@@ -106,10 +108,10 @@ if (defined ($pid) and $pid == 0) {
 	}
 	
 	if ($mount_successful == 1) {
-	    print_to_fifo($outputfifo, "Able to mount the repo with right configuration... OK.\n", "SNDMORE\n");
+	    $shell_socket->send("Able to mount the repo with right configuration... OK.\n");
 	}
 	else {
-	    print_to_fifo($outputfifo, "Unable to mount the repo with right configuration... WRONG.\n", "SNDMORE\n");
+	    $shell_socket->send("Unable to mount the repo with right configuration... WRONG.\n");
 	}
 
 	restart_cvmfs_services();
@@ -132,10 +134,10 @@ if (defined ($pid) and $pid == 0) {
 	}
 	
 	if ($broken_signature == 1) {
-	    print_to_fifo($outputfifo, "Able to mount the repo with garbage .cvmfspublished... WRONG.\n", "SNDMORE\n");
+	    $shell_socket->send("Able to mount the repo with garbage .cvmfspublished... WRONG.\n");
 	}
 	else {
-	    print_to_fifo($outputfifo, "Unable to mount the repo with garbage .cvmfspublished... OK.\n", "SNDMORE\n");
+	    $shell_socket->send("Unable to mount the repo with garbage .cvmfspublished... OK.\n");
 	}
 	
 	print "Restoring $published... ";
@@ -168,10 +170,10 @@ if (defined ($pid) and $pid == 0) {
 	}
 	
 	if ($garbage_datachunk == 1) {
-	    print_to_fifo($outputfifo, "Able to mount the repo with garbage datachunk... WRONG.\n", "SNDMORE\n");
+	    $shell_socket->send("Able to mount the repo with garbage datachunk... WRONG.\n");
 	}
 	else {
-	    print_to_fifo($outputfifo, "Unable to mount the repo with garbage datachunk... OK.\n", "SNDMORE\n");
+	    $shell_socket->send("Unable to mount the repo with garbage datachunk... OK.\n");
 	}
 	
 	print 'Restoring data chunk backup... ';
@@ -199,10 +201,10 @@ if (defined ($pid) and $pid == 0) {
 	}	
 	
 	if ($garbage_zlib == 1) {
-	    print_to_fifo($outputfifo, "Able to mount the repo with garbage zlib... WRONG.\n", "SNDMORE\n");
+	    $shell_socket->send("Able to mount the repo with garbage zlib... WRONG.\n");
 	}
 	else {
-	    print_to_fifo($outputfifo, "Unable to mount the repo with garbage zlib... OK.\n", "SNDMORE\n");
+	    $shell_socket->send("Unable to mount the repo with garbage zlib... OK.\n");
 	}
 	
 	print 'Restoring data chunk backup... ';
@@ -216,7 +218,8 @@ if (defined ($pid) and $pid == 0) {
 	
 	close_test_socket($socket, $ctxt);
 	
-	print_to_fifo($outputfifo, "END\n");
+	$shell_socket->send("END\n");
+	close_test_socket($shell_socket, $shell_ctxt);
 }
 
 # This will be ran by the main script.
