@@ -34,7 +34,7 @@ sub check_daemon {
 
 sub check_process {
 	my $process_name = shift;
-	my $running = `ps -fu cvmfs-test | grep $process_name`;
+	my $running = `ps -fu cvmfs-test | grep -i $process_name | grep -v grep`;
 	return $running;
 }
 
@@ -150,13 +150,13 @@ sub loading_animation {
 # This function will be use to get test output from the FIFO.
 sub get_test_output {
 	# Opening the socket to retrieve output
-	my ($socket, $ctxt) = bind_shell_socket();
+	my ($shell_socket, $shell_ctxt) = bind_shell_socket();
 	
 	#Be careful: this is blocking. Be sure to not send READ_RETURN_CODE signal to the shell
 	# if you are not going to send something through the socket. The shell will hang.
 	my $return_line = '';
-	while ($return_line ne "END\n") {
-		$return_line = receive_shell_msg($socket);
+	while ($return_line =~ m/END/ or check_process('do_all')) {
+		$return_line = receive_shell_msg($shell_socket);
 		
 		# Coloring the output in green or red
 		if ($return_line =~ m/OK.$/) {
@@ -170,13 +170,18 @@ sub get_test_output {
 			print color 'reset';
 		}
 		else {
-			print $return_line unless $return_line eq "END\n";
+			print $return_line unless $return_line =~ m/END/;
+		}
+		
+		# Waiting two seconds if END_ALL received
+		if ($return_line eq "END_ALL\n") {
+			sleep 5;
 		}
 	}
 	
 	# Closing the socket and the context
-	$socket = close_shell_socket($socket);
-	$ctxt = term_shell_ctxt($ctxt);
+	$shell_socket = close_shell_socket($shell_socket);
+	$shell_ctxt = term_shell_ctxt($shell_ctxt);
 }
 
 # This function will call a loop to wait for a complex output from the daemon

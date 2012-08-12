@@ -21,37 +21,11 @@ my $ret = GetOptions ( "stdout=s" => \$outputfile,
 # Test name used for socket identity
 my $testname = 'DO_ALL';
 
-# This function will wait on a FIFO for output test and will redirect this output
-# on the FIFO where the shell is waiting for it.
-sub send_test_output {
-	# Retrieving FIFO path
-	my $fifo = shift;
-	# Retrieving socket path
-	my $shell_socket = shift;
-	
-	# Will be set to 1 if more output lines are coming
-	my $continue = 0;
-	
-	# Creating a FIFO. The shell will wait for some output there.
-	make_fifo($fifo);
-	my $return_fh = open_rfifo($fifo);
-
-	while (my $return_line = $return_fh->getline) {
-		if ($return_line eq "SNDMORE\n") {
-			$continue = 1;
-		}
-		# Printing output in $outputfile for this test
-		print $return_line unless $return_line eq "SNDMORE\n";
-		# Sending output to the shell. I'm always sending it back with SNDMORE option.
-		# I'll close the fifo definitely at the end of this test.
-		$shell_socket->send($return_line) unless $return_line eq "SNDMORE\n" or $return_line eq "END\n";
-	}
-	close_fifo($return_fh);
-	unlink_fifo($fifo);
-	
-	if ($continue) {
-		send_test_output($fifo, $shell_socket);
-	}
+sub check_process {
+	my $process_name = shift;
+	my $running = `ps -fu cvmfs-test | grep -i $process_name | grep -v grep`;
+	print $running . "\n";
+	return $running;
 }
 
 # Function to get daemon output and call the function to send test output to the shell.
@@ -69,13 +43,12 @@ sub get_daemon_output {
 		$data = $reply->data;
 		
 		if ($data =~ m/PROCESSING/) {
+			my $process_name = (split /:/,$data)[-1];
+			chomp($process_name);
 			$shell_socket->send($data);
-		}
-		
-		if ($data =~ m/READ_RETURN_CODE/) {
-			my $fifo = (split /:/, $data)[-1];
-			chomp($fifo);
-			send_test_output($fifo, $shell_socket);
+			while(check_process($process_name)) {
+				sleep 3;
+			}
 		}
 		
 		print $data if $data ne "END\n" and $data !~ m/READ_RETURN_CODE/;
@@ -119,7 +92,7 @@ if (defined ($pid) and $pid == 0) {
 	}
 	
 	$shell_socket->send("All tests processed.\n");
-	$shell_socket->send("END\n");
+	$shell_socket->send("END_ALL\n");
 	
 	close_test_socket($socket, $ctxt);
 	close_test_socket($shell_socket, $shell_ctxt);
