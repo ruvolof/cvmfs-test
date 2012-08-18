@@ -6,7 +6,16 @@ use IO::Handle;
 use Functions::Help qw(help);
 use Functions::Launcher qw(launch kill_process jobs killall);
 use Functions::Testd qw(stop_daemon);
-use Functions::ServerSocket qw(start_socket receive_msg end_msg);
+use Functions::ServerSocket qw(start_socket receive_msg end_msg send_ip);
+use Getopt::Long;
+
+my $shell_path = undef;
+
+my $ret = GetOptions ("shell-path=s" => \$shell_path );
+
+if (defined($shell_path)) {
+	send_ip($shell_path, 'tcp://', 'wlan0');
+}
 
 # Opening the socket and dying if fail
 my $socket_started = start_socket();

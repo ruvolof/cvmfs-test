@@ -11,11 +11,18 @@ use strict;
 use warnings;
 use Proc::Spawn;
 use Functions::Shell qw(check_daemon check_command start_daemon get_daemon_output exit_shell);
-use Functions::ShellSocket qw(connect_shell_socket receive_shell_msg send_shell_msg close_shell_socket term_shell_ctxt);
+use Functions::ShellSocket qw(connect_shell_socket receive_shell_msg send_shell_msg close_shell_socket term_shell_ctxt bind_shell_socket);
 use Getopt::Long;
 
 my $command = undef;
+my $wait_daemon = undef;
 my $interactive = 1;
+
+# Variables to store daemon ip and port on distributed test
+my $daemon_ip = "127.0.0.1";
+my $daemon_port = "6650";
+my $daemon_path = "$daemon_ip:$daemon_port";
+
 
 # Next variables is used to control when to skip a loop cicle
 my $continue = undef;
@@ -23,17 +30,37 @@ my $continue = undef;
 # Variables for socket managing
 my $socket = undef;
 my $ctxt = undef;
+my $shell_socket = undef;
+my $shell_ctxt = undef;
 
-my $ret = GetOptions ( "c|command=s" => \$command );
+my $ret = GetOptions ( "c|command=s" => \$command,
+					   "wait-daemon" => \$wait_daemon );
+					   
+if (defined($wait_daemon)) {
+	# Opening the socket to wait for the daemon to send its ip
+	($shell_socket, $shell_ctxt) = bind_shell_socket();
+	
+	# Wait fo the daemon message
+	my $answer = receive_shell_msg($shell_socket);
+	
+	# Splitting the message and assigning it to variables
+	my @ip_port = split /:/, $answer;
+	($daemon_ip, $daemon_port) = ($ip_port[0], $ip_port[1]);
+	$daemon_path = "$daemon_ip:$daemon_port";
+	
+	# Closing the socket. The same socket will be used to receive tests output.
+	$socket = close_shell_socket($socket);
+	$ctxt = term_shell_ctxt($ctxt);
+}
 
 if (defined($command)) {
 	if (!check_daemon()) {
-		($socket, $ctxt) = start_daemon();
+		($socket, $ctxt) = start_daemon($daemon_path);
 	}
 	else {
-		($socket, $ctxt) = connect_shell_socket();
+		($socket, $ctxt) = connect_shell_socket($daemon_path);
 	}
-	my ($continue, $socket, $ctxt) = check_command($socket, $ctxt, $command);
+	my ($continue, $socket, $ctxt) = check_command($socket, $ctxt, $daemon_path, $command);
 	unless ($continue) {
 		send_shell_msg($socket, $command);
 		get_daemon_output($socket, $ctxt);
@@ -53,12 +80,12 @@ if ($interactive) {
 		print 'The daemon is not running. Would you like to run it now? [Y/n]';
 		my $answer = <STDIN>;
 		if($answer eq "\n" or $answer eq "Y\n" or $answer eq "y\n"){
-			($socket, $ctxt) = start_daemon();
+			($socket, $ctxt) = start_daemon($daemon_path);
 		}
 	}
 	else {
 		# Starting the socket to communicate with the server
-		($socket, $ctxt) = connect_shell_socket();
+		($socket, $ctxt) = connect_shell_socket($daemon_path);
 	}
 
 	# Infinite loop for the shell. It will switch between two shells: the first one
@@ -74,7 +101,7 @@ if ($interactive) {
 			chomp($line);
 			
 			# Checking again if the daemon is running, maybe something killed it.
-			unless (check_daemon) {
+			unless (check_daemon()) {
 				print "Daemon isn't running anymore. Check logs.\n";
 				$socket = close_shell_socket($socket);
 				$ctxt = term_shell_ctxt($ctxt);
@@ -82,7 +109,7 @@ if ($interactive) {
 			}
 			
 			# Checking if the command refer to the shell and not to the daemon
-			($continue, $socket, $ctxt) = check_command($socket, $ctxt, $line);
+			($continue, $socket, $ctxt) = check_command($socket, $ctxt, $daemon_path, $line);
 			# If the command was already executed, passing to the next while cicle
 			next if $continue;
 			
@@ -101,7 +128,7 @@ if ($interactive) {
 			chomp($line);
 			
 			# Launching the command
-			($continue, $socket, $ctxt) = check_command($socket, $ctxt, $line);
+			($continue, $socket, $ctxt) = check_command($socket, $ctxt, $daemon_path, $line);
 		}
 	}
 }

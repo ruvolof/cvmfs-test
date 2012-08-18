@@ -8,11 +8,12 @@ package Functions::ServerSocket;
 use strict;
 use warnings;
 use ZeroMQ qw/:all/;
+use Functions::Testd qw(get_interface_address);
 
 # Next lines are needed to export subroutines to the main package
 use base 'Exporter';
 use vars qw/ @EXPORT_OK /;
-@EXPORT_OK = qw(start_socket receive_msg send_msg end_msg close_socket term_ctxt);
+@EXPORT_OK = qw(start_socket receive_msg send_msg end_msg close_socket term_ctxt send_ip);
 
 # Modify this variables to change the path to the socket
 my $socket_path = '*:6650';
@@ -110,6 +111,33 @@ sub term_ctxt {
 	if ($ctxt_closed == -1) {
 		die "Unable to term ZeroMQ context: $!.\n";
 	}
+}
+
+sub send_ip {
+	my $socket_path = shift;
+	my $socket_protocol = shift;
+	my $interface = shift;
+
+	# Modify this variables to change the default path to the socket
+	unless (defined($socket_path)) {
+		$socket_path = '127.0.0.1:6651';
+	}
+	unless (defined($socket_protocol)) {
+		$socket_protocol = 'tcp://';
+	}
+	
+	my $ctxt = ZeroMQ::Raw::zmq_init(5) || die "Couldn't initialise ZeroMQ context.\n";
+	my $socket = ZeroMQ::Raw::zmq_socket($ctxt, ZMQ_PUSH) || die "Couldn't create socket.\n";
+	my $setopt = ZeroMQ::Raw::zmq_setsockopt($socket, ZMQ_IDENTITY, 'DAEMON');
+
+	my $rc = ZeroMQ::Raw::zmq_connect( $socket, "${socket_protocol}${socket_path}" );
+	
+	my $daemon_ip = get_interface_address($interface);
+	
+	ZeroMQ::Raw::zmq_send($socket, "$daemon_ip:6650");
+	
+	ZeroMQ::Raw::zmq_close($socket);
+	ZeroMQ::Raw::zmq_term($ctxt);
 }
 
 1;

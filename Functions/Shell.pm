@@ -29,7 +29,7 @@ use FindBin qw($Bin);
 # This function will check whether the daemon is running.
 sub check_daemon {
 	my $running = `ps -ef | grep cvmfs-testdwrapper | grep -v grep | grep -v defunct`;
-	return $running;
+	return $running and $main::daemon_ip ne "127.0.0.1";
 }
 
 sub check_process {
@@ -44,6 +44,7 @@ sub check_process {
 sub check_command {
 	my $socket = shift;
 	my $ctxt = shift;
+	my $daemon_path = shift;
 	# Retrieving arguments: command
 	my $command = shift;
 	
@@ -54,11 +55,11 @@ sub check_command {
 	for ($command){
 		if ($_ eq 'exit' or $_ eq 'quit' or $_ eq 'q') { exit_shell($socket, $ctxt) }
 		elsif ($_ eq 'status') { print_status(); $executed = 1 }
-		elsif ($_ =~ m/^start\s*.*/ ) { start_daemon($command); $executed = 1 }
+		elsif ($_ =~ m/^start\s*.*/ ) { start_daemon($daemon_path, $command); $executed = 1 }
 		elsif ($_ =~ m/^help\s*.*/ or $_ =~ m/^h\s.*/) { help($command), $executed = 1 }
 		elsif ($_ eq 'setup' ) { setup(); $executed = 1 }
 		elsif ($_ eq 'fixperm') { fixperm(); $executed = 1 }
-		elsif ($_ =~ m/^restart\s*.*/ ) { ($socket, $ctxt) = restart_daemon($socket, $ctxt, $command); $executed = 1 }
+		elsif ($_ =~ m/^restart\s*.*/ ) { ($socket, $ctxt) = restart_daemon($socket, $ctxt, $daemon_path, $command); $executed = 1 }
 	}
 	
 	# If the daemon is not running and no command was executed, print on screen a message
@@ -233,6 +234,7 @@ sub get_daemon_output {
 
 # This function will start the daemon if it's not already running
 sub start_daemon {
+	my $daemon_path = shift;
 	if (defined (@_) and scalar(@_) > 0) {
 		# Retrieving arguments
 		my $line = shift;
@@ -278,7 +280,7 @@ sub start_daemon {
 			
 			# Opening the socket to communicate with the server
 			print "Opening the socket... ";
-			my ($socket, $ctxt) = connect_shell_socket();
+			my ($socket, $ctxt) = connect_shell_socket($daemon_path);
 			if ($socket) {
 				print "Done.\n";
 				return ($socket, $ctxt);
@@ -300,6 +302,7 @@ sub start_daemon {
 sub restart_daemon {
 	my $socket = shift;
 	my $ctxt = shift;
+	my $daemon_path = shift;
 	# Retrieving options to pass to start_daemon
 	my $line = shift;
 	
@@ -307,7 +310,7 @@ sub restart_daemon {
 		send_shell_msg($socket, 'stop');
 		get_daemon_output($socket, $ctxt);
 		sleep 1;
-		($socket, $ctxt) = start_daemon($line);
+		($socket, $ctxt) = start_daemon($daemon_path, $line);
 		return ($socket, $ctxt);
 	}
 	else {

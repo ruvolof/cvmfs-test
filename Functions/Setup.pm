@@ -8,7 +8,6 @@ package Functions::Setup;
 use strict;
 use warnings;
 use Fcntl ':mode';
-use Functions::Shell qw(check_daemon);
 
 # The next line is here to help me find the directory of the script
 # if you have a better method, let me know.
@@ -19,12 +18,18 @@ use base 'Exporter';
 use vars qw/ @EXPORT_OK /;
 @EXPORT_OK = qw(setup fixperm);
 
+sub check_daemon {
+	my $running = `ps -ef | grep cvmfs-testdwrapper | grep -v grep | grep -v defunct`;
+	return $running;
+}
+
 sub setup {
-	my $sudoers = shift;
 	my $fixperm = shift;
 	
-	if (!Functions::Shell::check_daemon()){
-		unless (defined($sudoers) and $sudoers == 1) {
+	if (!check_daemon()){
+		my $user_id = `id -u`;
+		chomp($user_id);
+		if ($user_id ne '0') {
 			print "You will need to be in the sudoers file to complete the setup process. Are you? [N,y]";
 			my $answer = <STDIN>;
 			unless ($answer eq "y\n" or $answer eq "Y\n") { return }
@@ -36,7 +41,7 @@ sub setup {
 			my $log_folder = create_log_folder();
 			my $add_to_sudoers = add_to_sudoers();
 		
-		unless(defined($fixperm) and $fixperm == 1) {
+		unless(defined($fixperm) and $fixperm eq 'true') {
 			print "\n";
 			print '_' x 80 . "\n";
 			print "Setup complete. Run 'fixperm' to be sure all permission are set correctly.\n";

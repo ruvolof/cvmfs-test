@@ -9,16 +9,18 @@ use strict;
 use warnings;
 use Functions::ServerSocket qw(send_msg close_socket term_ctxt end_msg);
 use Scalar::Util qw(looks_like_number);
+use Socket;
+require 'sys/ioctl.ph';
 
 # Next lines are needed to export subroutine to the main package
 use base 'Exporter';
 use vars qw/ @EXPORT_OK /;
-@EXPORT_OK = qw(stop_daemon);
+@EXPORT_OK = qw(stop_daemon get_interface_address);
 
 # This function will close the socket, the context and unlink the file.
 sub remove_socket {	
-	close_socket();
-	term_ctxt();
+	&Functions::ServerSocket::close_socket();
+	&Functions::ServerSocket::term_ctxt();
 	
 	unlink('/tmp/server.ipc');	
 }
@@ -75,9 +77,9 @@ sub stop_daemon {
 	killing_child();
 	
 	# Printing to the FIFO the last log. 
-	send_msg("Daemon stopped.\n");
-	send_msg("DAEMON_STOPPED\n");
-	end_msg();
+	&Functions::ServerSocket::send_msg("Daemon stopped.\n");
+	&Functions::ServerSocket::send_msg("DAEMON_STOPPED\n");
+	&Functions::ServerSocket::end_msg();
 	
 	# Removing the socket. Do it only when you're sure you don't have any more output to send.
 	remove_socket();
@@ -85,6 +87,18 @@ sub stop_daemon {
 	print "Daemon stopped.\n";
 	STDOUT->flush();
 	exit 0;
+}
+
+# This function will accept a network interface and will retrieve the network ip for that interface
+sub get_interface_address {
+	my $iface = shift;
+	my $socket;
+	socket($socket, PF_INET, SOCK_STREAM, (getprotobyname('tcp'))[2]) || die "unable to create a socket: $!\n";
+	my $buf = pack('a256', $iface);
+	if (ioctl($socket, SIOCGIFADDR(), $buf) && (my @address = unpack('x20 C4', $buf))) {
+		return join('.', @address);
+	}
+	return undef;
 }
 
 1;

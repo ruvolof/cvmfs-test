@@ -20,8 +20,10 @@ sub connect_shell_socket {
 	my $socket_protocol = shift;
 
 	# Modify this variables to change the default path to the socket
-	unless (defined($socket_path) and defined($socket_protocol)) {
+	unless (defined($socket_path)) {
 		$socket_path = '127.0.0.1:6650';
+	}
+	unless (defined($socket_protocol)) {
 		$socket_protocol = 'tcp://';
 	}
 	
