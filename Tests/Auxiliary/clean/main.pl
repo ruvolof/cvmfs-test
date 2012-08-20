@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 use ZeroMQ qw/:all/;
-use FindBin qw($Bin);
+use FindBin qw($RealBin);
 use Getopt::Long;
 use Tests::Common qw(recursive_rm multiple_rm open_test_socket close_test_socket);
 

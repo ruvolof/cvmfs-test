@@ -11,7 +11,7 @@ use Functions::Shell qw(check_daemon);
 
 # The next line is here to help me find the directory of the script
 # if you have a better method, let me know.
-use FindBin qw($Bin);
+use FindBin qw($RealBin);
 
 # Next lines are needed to export subroutines to the main package
 use base 'Exporter';
@@ -55,7 +55,7 @@ sub help {
 }
 
 # This function will retrive the position of plugin related help file.
-# It search recursively in all folder inside $Bin (that is the directory
+# It search recursively in all folder inside $RealBin (that is the directory
 # where the script is located). In this way we can organize our plugins in
 # "subject related" subfolder.
 sub get_help_file {
@@ -69,13 +69,13 @@ sub get_help_file {
 			$helpfile = $&;		
 		}
 	};
-	finddepth( { wanted => $select }, $Bin);
+	finddepth( { wanted => $select }, $RealBin);
 	
 	# Returning the help file path to print_command_help
 	return $helpfile;
 }
 
-# This function will retrieve all the help file inside $Bin and for each one of them
+# This function will retrieve all the help file inside $RealBin and for each one of them
 # it prints the Short description. It needs no argument.
 sub print_help {	
 	# Retrieving all help files
@@ -85,7 +85,7 @@ sub print_help {
 			push @helpfiles,$File::Find::name; # adds help files in the @helpfiles array.
 		}
 	};
-	find( { wanted => $select }, $Bin);
+	find( { wanted => $select }, $RealBin);
 	
 	# Here it will open all the files and will print their contents. Only lines
 	# starting with 'Short:'.
@@ -145,7 +145,7 @@ sub print_shell_help {
 			$helpfile = $&;		
 		}
 	};
-	finddepth( { wanted => $select }, $Bin);
+	finddepth( { wanted => $select }, $RealBin);
 	
 	# Printing help information
 	if ( defined ($helpfile) && -e $helpfile){

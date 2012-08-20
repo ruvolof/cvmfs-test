@@ -19,8 +19,8 @@ use vars qw/ @EXPORT_OK /;
 
 # This function will close the socket, the context and unlink the file.
 sub remove_socket {	
-	&Functions::ServerSocket::close_socket();
-	&Functions::ServerSocket::term_ctxt();
+	close_socket();
+	term_ctxt();
 	
 	unlink('/tmp/server.ipc');	
 }
@@ -77,9 +77,9 @@ sub stop_daemon {
 	killing_child();
 	
 	# Printing to the FIFO the last log. 
-	&Functions::ServerSocket::send_msg("Daemon stopped.\n");
-	&Functions::ServerSocket::send_msg("DAEMON_STOPPED\n");
-	&Functions::ServerSocket::end_msg();
+	send_msg("Daemon stopped.\n");
+	send_msg("DAEMON_STOPPED\n");
+	end_msg();
 	
 	# Removing the socket. Do it only when you're sure you don't have any more output to send.
 	remove_socket();

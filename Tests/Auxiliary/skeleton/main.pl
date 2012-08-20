@@ -10,9 +10,9 @@ use warnings;
 
 # A very good idea, at first, is to include the script directory in Perl include dir.
 # Moreover, whenever you need to refer to the script directory, you will be able to do
-# it with $Bin.
-use FindBin qw($Bin);
-use lib $Bin;
+# it with $RealBin.
+use FindBin qw($RealBin);
+use lib $RealBin;
 
 # First of all, we have to include every module needed for the test.
 # The most important module is, probably, the Tests::Common module, which
@@ -140,7 +140,7 @@ if (defined($pid) and $pid == 0) {
 	# this is why we need to call it with sudo.
 	
 	##print 'Configuring cvmfs... ';
-	##system("sudo $Bin/cvmfs_config.sh");
+	##system("sudo $RealBin/cvmfs_config.sh");
 	##print "Done.\n";
 	
 	# Now the setup process is finally complete. We're ready to test out whatever we want.
@@ -205,7 +205,7 @@ if (defined($pid) and $pid == 0) {
 	# and because of the FIFO stack, the shell will hang forever because will read a SNDMORE after the last line.
 	
 	sleep 5;
-	print_to_fifo($outputfifo, "You could find all skeleton file to build a test in $Bin.\n");
+	print_to_fifo($outputfifo, "You could find all skeleton file to build a test in $RealBin.\n");
 	
 	
 	# As last thing, when your script is finished, you need to close the socket and the context.

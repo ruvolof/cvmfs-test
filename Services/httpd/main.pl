@@ -1,7 +1,7 @@
 use strict;
 use warnings;
-use FindBin qw($Bin);
-use lib "$Bin";
+use FindBin qw($RealBin);
+use lib "$RealBin";
 use HTTP::AppServer;
 use Getopt::Long;
 

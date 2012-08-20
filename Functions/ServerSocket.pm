@@ -8,7 +8,6 @@ package Functions::ServerSocket;
 use strict;
 use warnings;
 use ZeroMQ qw/:all/;
-use Functions::Testd qw(get_interface_address);
 
 # Next lines are needed to export subroutines to the main package
 use base 'Exporter';
@@ -132,7 +131,7 @@ sub send_ip {
 
 	my $rc = ZeroMQ::Raw::zmq_connect( $socket, "${socket_protocol}${socket_path}" );
 	
-	my $daemon_ip = get_interface_address($interface);
+	my $daemon_ip = Functions::Testd::get_interface_address($interface);
 	
 	ZeroMQ::Raw::zmq_send($socket, "$daemon_ip:6650");
 	

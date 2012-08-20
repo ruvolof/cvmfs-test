@@ -6,7 +6,7 @@ use Tests::Common qw(get_daemon_output killing_services check_repo setup_environ
 use File::Copy;
 use File::Find;
 use Getopt::Long;
-use FindBin qw($Bin);
+use FindBin qw($RealBin);
 
 # Folders where to extract the repo, document root for httpd and other useful folder
 my $tmp_repo = '/tmp/server/repo/';
@@ -73,7 +73,7 @@ if (defined ($pid) and $pid == 0) {
 	
 	# Configuring cvmfs for the first two tests.
 	print 'Configuring cvmfs... ';
-	system("sudo $Bin/config_cvmfs.sh");
+	system("sudo $RealBin/config_cvmfs.sh");
 	print "Done.\n";
 	
 	# Retrieving cvmfs version for short_ttl time

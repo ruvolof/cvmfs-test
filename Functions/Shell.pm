@@ -24,7 +24,7 @@ use vars qw/ @EXPORT_OK /;
 
 # The next line is here to help me find the directory of the script
 # if you have a better method, let me know.
-use FindBin qw($Bin);
+use FindBin qw($RealBin);
 
 # This function will check whether the daemon is running.
 sub check_daemon {
@@ -45,7 +45,6 @@ sub check_command {
 	my $socket = shift;
 	my $ctxt = shift;
 	my $daemon_path = shift;
-	# Retrieving arguments: command
 	my $command = shift;
 	
 	# Variables to memorize if the command was found and executed
@@ -55,7 +54,7 @@ sub check_command {
 	for ($command){
 		if ($_ eq 'exit' or $_ eq 'quit' or $_ eq 'q') { exit_shell($socket, $ctxt) }
 		elsif ($_ eq 'status') { print_status(); $executed = 1 }
-		elsif ($_ =~ m/^start\s*.*/ ) { start_daemon($daemon_path, $command); $executed = 1 }
+		elsif ($_ =~ m/^start\s*.*/ ) { ($socket, $ctxt) = start_daemon($daemon_path, $command); $executed = 1 }
 		elsif ($_ =~ m/^help\s*.*/ or $_ =~ m/^h\s.*/) { help($command), $executed = 1 }
 		elsif ($_ eq 'setup' ) { setup(); $executed = 1 }
 		elsif ($_ eq 'fixperm') { fixperm(); $executed = 1 }
@@ -89,8 +88,8 @@ sub check_permission {
 	$user = `cat /etc/passwd | grep cvmfs-test`;
 	
 	# Checking if the user own the daemon file
-	if (-e "$Bin/cvmfs-testdwrapper"){
-		my $uid = (stat("$Bin/cvmfs-testdwrapper"))[4];
+	if (-e "$RealBin/cvmfs-testdwrapper"){
+		my $uid = (stat("$RealBin/cvmfs-testdwrapper"))[4];
 		$owner = (getpwuid($uid))[0];
 	}
 	else {
@@ -98,8 +97,8 @@ sub check_permission {
 	}
 	
 	# Checking if the file has the setuid bit
-	if (-e "$Bin/cvmfs-testdwrapper") {
-		my $mode = (stat("$Bin/cvmfs-testdwrapper"))[2];
+	if (-e "$RealBin/cvmfs-testdwrapper") {
+		my $mode = (stat("$RealBin/cvmfs-testdwrapper"))[2];
 		$suid = $mode & S_ISUID;
 	}
 	else {
@@ -156,11 +155,12 @@ sub get_test_output {
 	#Be careful: this is blocking. Be sure to not send READ_RETURN_CODE signal to the shell
 	# if you are not going to send something through the socket. The shell will hang.
 	my $return_line = '';
-	while ($return_line =~ m/END/ or check_process('do_all')) {
+	while ($return_line !~ m/END/ or check_process('do_all')) {
 		$return_line = receive_shell_msg($shell_socket);
 		
 		# Coloring the output in green or red
 		if ($return_line =~ m/OK.$/) {
+
 			print color 'green';
 			print $return_line;
 			print color 'reset';
@@ -174,6 +174,7 @@ sub get_test_output {
 			print $return_line unless $return_line =~ m/END/;
 		}
 		
+
 		# Waiting two seconds if END_ALL received
 		if ($return_line eq "END_ALL\n") {
 			sleep 5;
@@ -261,7 +262,7 @@ sub start_daemon {
 			my ($daempid, $daemin, $daemout, $daemerr);
 			print 'Starting daemon... ';
 			my $daemonpid = Proc::Daemon::Init( { 
-													work_dir => $Bin,
+													work_dir => $RealBin,
 													pid_file => '/tmp/daemon.pid',
 													child_STDOUT => $daemon_output,
 													child_STDERR => $daemon_error,

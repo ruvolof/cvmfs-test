@@ -1,8 +1,8 @@
 use HTTP::Proxy qw(:log);
 use Getopt::Long;
 
-use FindBin qw($Bin);
-use lib $Bin;
+use FindBin qw($RealBin);
+use lib "$RealBin";
 
 use Filters;
 use HTTP::Proxy::BodyFilter::complete;

@@ -2,10 +2,10 @@
 
 # The next line is here to help me find the directory of the script
 # if you have a better method, let me know.
-use FindBin qw($Bin);
+use FindBin qw($RealBin);
 
 # Next line adds the script directory to the lib path
-use lib $Bin;
+use lib "$RealBin";
 
 use strict;
 use warnings;
@@ -16,6 +16,8 @@ use Getopt::Long;
 
 my $command = undef;
 my $wait_daemon = undef;
+my $setup = undef;
+my $help_message = undef;
 my $interactive = 1;
 
 # Variables to store daemon ip and port on distributed test
@@ -34,8 +36,31 @@ my $shell_socket = undef;
 my $shell_ctxt = undef;
 
 my $ret = GetOptions ( "c|command=s" => \$command,
-					   "wait-daemon" => \$wait_daemon );
-					   
+					   "wait-daemon" => \$wait_daemon,
+					   "setup" => \$setup,
+					   "h|help" => \$help_message );
+
+if (defined($help_message)) {
+	my $help = <<'END';
+Usage: cvmfs-test [--i] [--setup] [--wait-daemon] [--c command]
+	
+-h|--help	Print this help and exit.
+--i		Start the interactive shell. Default.
+--setup		Setup the environment.
+--wait-daemon	Wait for the daemon to send its ip.
+--c command	Executes command and exit.
+
+END
+	print $help;
+	exit_shell($socket, $ctxt);
+}
+
+if (defined($setup)) {
+	check_command(undef, undef, undef, 'setup');
+	check_command(undef, undef, undef, 'fixperm');
+	exit_shell($socket, $ctxt);
+}
+
 if (defined($wait_daemon)) {
 	# Opening the socket to wait for the daemon to send its ip
 	($shell_socket, $shell_ctxt) = bind_shell_socket();

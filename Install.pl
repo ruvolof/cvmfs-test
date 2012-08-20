@@ -5,8 +5,11 @@ use warnings;
 use LWP::Simple;
 use Getopt::Long;
 use File::Copy;
+use File::Copy::Recursive qw(dircopy);
 use File::Find;
 use FindBin qw($Bin);
+
+$| = 1;
 
 my $prefix = '/opt';
 my $manpath = '/usr/local/man';
@@ -55,7 +58,7 @@ chomp($arch);
 my $libsuffix = '';
 
 if ($arch eq 'x86_64') { $libsuffix = '64' }
-
+if (0) {
 print 'Downloading ZeroMQ source tarball... ';
 getstore($zmq_retrieve, $zmq_source);
 print "Done.\n";
@@ -75,6 +78,7 @@ chdir '..';
 recursive_rm("$Bin/$zmq_source_dir");
 unlink($zmq_source);
 
+
 print 'Installing cpanminus... ';
 system('curl -L http://cpanmin.us | perl - --self-upgrade');
 print "Done.\n";
@@ -86,13 +90,17 @@ print "Done.\n";
 print 'Upgrading Socket.pm version... ';
 system('sudo cpanm Socket');
 print "Done.\n";
+}
 
 unlink("$manpath/man1/$bin_name.1");
 copy("$Bin/man/cvmfs-test.1", "$manpath/man1/$bin_name.1");
-unlink("$bindir/$bin_name");
-symlink "$Bin/cvmfs-testshell.pl", "$bindir/$bin_name";
 
-use Functions::Setup qw(setup);
-setup("true");
+dircopy($Bin, "$prefix/cvmfs-test");
+system("sudo chown -R cvmfs-test:cvmfs-test $prefix/cvmfs-test");
+
+unlink("$bindir/$bin_name");
+symlink "$prefix/cvmfs-test/cvmfs-testshell.pl", "$bindir/$bin_name";
+
+system('cvmfs-test --setup');
 
 exit 0;

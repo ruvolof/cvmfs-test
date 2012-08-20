@@ -3,7 +3,7 @@ use warnings;
 use ZeroMQ qw/:all/;
 use Tests::Common qw(get_daemon_output killing_services check_repo setup_environment restart_cvmfs_services set_stdout_stderr open_test_socket close_test_socket open_shellout_socket);
 use Getopt::Long;
-use FindBin qw($Bin);
+use FindBin qw($RealBin);
 
 # Folders where to extract the repo and document root for httpd
 my $tmp_repo = '/tmp/server/repo/';
@@ -68,7 +68,7 @@ if (defined ($pid) and $pid == 0) {
 	
 	# Configuring cvmfs for sequent test
 	print 'Configuring cvmfs... ';
-	system("sudo $Bin/config_cvmfs.sh");
+	system("sudo $RealBin/config_cvmfs.sh");
 	print "Done.\n";
 	
 	# Creating file to be served for --deliver-crap proxy option

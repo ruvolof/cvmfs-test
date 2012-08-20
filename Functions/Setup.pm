@@ -11,7 +11,7 @@ use Fcntl ':mode';
 
 # The next line is here to help me find the directory of the script
 # if you have a better method, let me know.
-use FindBin qw($Bin);
+use FindBin qw($RealBin);
 
 # Next lines are needed to export subroutines to the main package
 use base 'Exporter';
@@ -61,7 +61,7 @@ sub setup {
 sub compile_wrapper {
 	if (-e '/usr/bin/gcc') {
 		print "Compiling the wrapper... \n";
-		my $compile = system("/usr/bin/gcc -o $Bin/cvmfs-testdwrapper $Bin/cvmfs-testdwrapper.c");
+		my $compile = system("sudo /usr/bin/gcc -o $RealBin/cvmfs-testdwrapper $RealBin/cvmfs-testdwrapper.c");
 		if ($compile == -1){
 			print "FAILED: $!\n";
 			return 0;
@@ -109,11 +109,11 @@ sub create_user {
 # This function will check if the wrapper is owned by the user cvmfs-test, return 1 on success and 0 on failure
 sub chown_wrapper {
 	# Checking if the user own the daemon wrapper
-	my $uid = (stat("$Bin/cvmfs-testdwrapper"))[4];
+	my $uid = (stat("$RealBin/cvmfs-testdwrapper"))[4];
 	my $owner = (getpwuid($uid))[0];
 	if($owner ne 'root') {
 		print "Changing the owner of the wrapper... \n";
-		my $chowned = system("sudo chown root:root $Bin/cvmfs-testdwrapper");
+		my $chowned = system("sudo chown root:root $RealBin/cvmfs-testdwrapper");
 		if ($chowned == -1){
 			print "FAILED: $!\n";
 			return 0;
@@ -132,7 +132,7 @@ sub chown_wrapper {
 # This function will add the setuid byte to wrapper permission
 sub setuid_wrapper {
 	# Checking if the file has the setuid bit
-	my $mode = (stat("$Bin/cvmfs-testdwrapper"))[2];
+	my $mode = (stat("$RealBin/cvmfs-testdwrapper"))[2];
 	my $suid = $mode & S_ISUID;
 	
 	if($suid) {
@@ -141,7 +141,7 @@ sub setuid_wrapper {
 	}
 	else {
 		print "Adding setuid byte... \n";
-		my $setuid = system("sudo chmod u+s $Bin/cvmfs-testdwrapper");
+		my $setuid = system("sudo chmod u+s $RealBin/cvmfs-testdwrapper");
 		if ($setuid == -1){
 			print "FAILED: $!\n";
 			return 0;
@@ -155,40 +155,48 @@ sub setuid_wrapper {
 
 # This function will set all permission for files and directories
 sub fixperm {
+	my $user_id = `id -u`;
+	chomp($user_id);
+	if ($user_id ne '0') {
+		print "You will need to be in the sudoers file to complete the setup process. Are you? [N,y]";
+		my $answer = <STDIN>;
+		unless ($answer eq "y\n" or $answer eq "Y\n") { return }
+	}
+	
 	print 'Setting permission for modules to 644... ';
-	system("find -type f -name \"*.pm\" -exec chmod 644 {} +");
+	system("sudo find $RealBin -type f -name \"*.pm\" -exec chmod 644 {} +");
 	print "Done.\n";
 	
 	print 'Setting permission for executables to 755... ';
-	system("find -type f -name \"*.pl\" -exec chmod 755 {} +");
+	system("sudo find $RealBin -type f -name \"*.pl\" -exec chmod 755 {} +");
 	print "Done.\n";
 	
 	print 'Setting permission for directories to 755... ';
-	system("find -type d -exec chmod 755 {} +");
+	system("sudo find $RealBin -type d -exec chmod 755 {} +");
 	print "Done.\n";
 	
 	print 'Setting permission for tests directory to 777... ';
-	system("find -name \"Tests*\" -type d -exec chmod 777 {} +");
+	system("sudo find $RealBin -name \"Tests*\" -type d -exec chmod 777 {} +");
 	print "Done.\n";
 	
 	print 'Setting permission for help files to 644... ';
-	system("find -type f -name \"*help\" -exec chmod 644 {} +");
+	system("sudo find $RealBin -type f -name \"*help\" -exec chmod 644 {} +");
 	print "Done.\n";
 	
 	print 'Setting permission for bash script to 755... ';
-	system("find -type f -name \"*.sh\" -exec chmod 755 {} +");
+	system("sudo find $RealBin -type f -name \"*.sh\" -exec chmod 755 {} +");
 	print "Done.\n";
 
 	print 'Setting permission for archives to 777... ';
-	system("find -type f -name \"*.tar.gz\" -exec chmod 777 {} +");
+	system("sudo find $RealBin -type f -name \"*.tar.gz\" -exec chmod 777 {} +");
 	print "Done.\n";
 
 	print 'Setting permission for C executable files to 755... ';
-	system("find -type f -name \"*.crun\" -exec chmod 755 {} +");
+	system("sudo find $RealBin -type f -name \"*.crun\" -exec chmod 755 {} +");
 	print "Done.\n";
 	
 	print 'Setting permission for pod files to 644...';
-	system("find -type f -name \"*.pod\" -exec chmod 644 {} +");
+	system("sudo find $RealBin -type f -name \"*.pod\" -exec chmod 644 {} +");
 	print "Done.\n";
 }
 

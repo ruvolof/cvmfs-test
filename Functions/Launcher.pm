@@ -13,7 +13,7 @@ use Scalar::Util qw(looks_like_number);
 
 # The next line is here to help me find the directory of the script
 # if you have a better method, let me know.
-use FindBin qw($Bin);
+use FindBin qw($RealBin);
 
 # This code is needed to export the functions in the main package
 use base 'Exporter';
@@ -21,7 +21,7 @@ use vars qw/ @EXPORT_OK /;
 @EXPORT_OK = qw{ launch kill_process jobs killall };
 
 # This function will be launched everytime a command is invoked from the shell. It will
-# search recursively from $Bin for a main.pl file inside a folder named as the requested command.
+# search recursively from $RealBin for a main.pl file inside a folder named as the requested command.
 # If found, it will launch the main.pl file. Else, it will return back to the shell.
 sub launch {
 	# Retrieving argument: command, output file handler and options

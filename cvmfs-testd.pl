@@ -2,6 +2,8 @@
 
 use strict;
 use warnings;
+use FindBin qw($RealBin);
+use lib "$RealBin";
 use IO::Handle;
 use Functions::Help qw(help);
 use Functions::Launcher qw(launch kill_process jobs killall);
