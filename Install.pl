@@ -58,7 +58,7 @@ chomp($arch);
 my $libsuffix = '';
 
 if ($arch eq 'x86_64') { $libsuffix = '64' }
-if (0) {
+
 print 'Downloading ZeroMQ source tarball... ';
 getstore($zmq_retrieve, $zmq_source);
 print "Done.\n";
@@ -90,7 +90,7 @@ print "Done.\n";
 print 'Upgrading Socket.pm version... ';
 system('sudo cpanm Socket');
 print "Done.\n";
-}
+
 
 unlink("$manpath/man1/$bin_name.1");
 copy("$Bin/man/cvmfs-test.1", "$manpath/man1/$bin_name.1");
