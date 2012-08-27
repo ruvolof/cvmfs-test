@@ -1,3 +1,5 @@
 *~
 .bzr/
 .bzrignore
+cvmfs-testdwrapper
+Tests/Common/zpipe.run
