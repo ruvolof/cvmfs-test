@@ -7,14 +7,14 @@ It consist of a shell and a daemon. The daemon, receiving command from the shell
 
 You can install cvmfs in two ways. The first one, and the suggested one, is to install it together with the latest version of cvmfs itself:
 
-`git clone http://github.com/cvmfs/cvmfs cvmfs`  
+`git clone git://github.com/cvmfs/cvmfs cvmfs`  
 `cd cvmfs`  
 `cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -DINSTALL_TEST_SYSTEM=/opt`  
 `sudo make install`
 
 Otherwise, if you already have an older version of cvmfs and you want only install cvmfs-test, you can do it as follows:
 
-`git clone http://github.com/ruvolof/cvmfs-test cvmfs-test`  
+`git clone git://github.com/ruvolof/cvmfs-test cvmfs-test`  
 `cd cvmfs-test`  
 `sudo ./Install.pl`  
 
