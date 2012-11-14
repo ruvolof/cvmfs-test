@@ -29,7 +29,7 @@ use vars qw/ @EXPORT_OK /;
 use FindBin qw($RealBin);
 
 # This variable will be set to 1 if the shell is speaking to a daemon on a remote machine
-our $remote = 0;
+my $remote = 0;
 
 # This function will check whether the daemon is running.
 sub check_daemon {
