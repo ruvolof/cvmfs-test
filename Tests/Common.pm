@@ -344,6 +344,8 @@ sub open_shellout_socket {
 
 # This functions restores resolv.conf backup and erase iptabes rules added for dns test
 sub restore_dns {
+	my $resolv_temp = shift;
+	
 	# Restoring resolv.conf
 	print 'Restoring resolv.conf backup... ';
 	system("sudo cp $resolv_temp /etc/resolv.conf");

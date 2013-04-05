@@ -193,7 +193,7 @@ if (defined ($pid) and $pid == 0) {
 
 	restart_cvmfs_services();
 	
-	restore_dns();
+	restore_dns($resolv_temp);
 	
 	close_test_socket($socket, $ctxt);
 	

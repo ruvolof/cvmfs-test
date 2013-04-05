@@ -182,7 +182,7 @@ if (defined ($pid) and $pid == 0) {
 	restart_cvmfs_services();
 	
 	# Restore iptables and resolv.conf
-	restore_dns();
+	restore_dns($resolv_temp);
 	
 	# Closing socket
 	close_test_socket($socket, $ctxt);

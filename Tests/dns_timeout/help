@@ -10,5 +10,7 @@ dns_timeout:	  --stdout FILE	Redirect STDOUT to FILE.
 dns_timeout:			Default to /var/log/cvmfs-test/dns_timeout.out.
 dns_timeout:	  --stderr FILE Redirect STDERR to FILE.
 dns_timeout:			Default to /var/log/cvmfs-test/dns_timeout.err.
+dns_timeout:	  --restore	Doesn't run the test, but restore dns and
+dns_timeout:			iptables settings.
 dns_timeout:	  --no-clean	Skip environment cleaning.
 dns_timeout:
