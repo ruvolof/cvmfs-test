@@ -32,13 +32,17 @@ my ($mount_successful, $server_timeout, $proxy_timeout) = (0, 0, 0);
 # Array to store PID of services. Every service will be killed after every test.
 my @pids;
 
+# Variable use for debug purpose;
+my $break_point = undef;
+
 # Retrieving command line options
 my $ret = GetOptions ( "stdout=s" => \$outputfile,
 					   "stderr=s" => \$errorfile,
 					   "no-clean" => \$no_clean,
 					   "do-all" => \$do_all,
 					   "shell-path=s" => \$shell_path,
-					   "restore" => \$restore_b );
+					   "restore" => \$restore_b,
+					   "breakpoint|bp=i" => \$break_point );
 					   
 if ($restore_b) {
 	restore_dns();
@@ -116,6 +120,16 @@ if (defined ($pid) and $pid == 0) {
 	@pids = get_daemon_output($socket, @pids);
 	sleep 5;
 	print "Done.\n";
+	
+	# Exiting if break_point is set to 1
+	if ($break_point == 1) {
+			close_test_socket($socket, $ctxt);
+			
+			$shell_socket->send("Exiting at breakpoint $break_point. Good debug.\n");
+			$shell_socket->send("END\n");
+			close_test_socket($shell_socket, $shell_ctxt);
+			exit 0;
+	}
 
 	# For this first test, we should be able to mount the repo. So, if possibile, setting its variable
 	# to 1.
@@ -146,6 +160,16 @@ if (defined ($pid) and $pid == 0) {
 	@pids = get_daemon_output($socket, @pids);
 	sleep 5;
 	print "Done.\n";
+	
+	# Exiting if break_point is set to 1
+	if ($break_point == 2) {
+			close_test_socket($socket, $ctxt);
+			
+			$shell_socket->send("Exiting at breakpoint $break_point. Good debug.\n");
+			$shell_socket->send("END\n");
+			close_test_socket($shell_socket, $shell_ctxt);
+			exit 0;
+	}
 
 	# For this test, we shouldn't be able to mount the repo. If possibile, setting its variable
 	# to 1.
@@ -164,7 +188,7 @@ if (defined ($pid) and $pid == 0) {
 	
 	print '-'x30 . 'SERVER_TIMEOUT' . '-'x30 . "\n";
 	
-	# Reconfigurin cvmfs to not use any proxy to test timeout setting with direct connection
+	# Reconfiguring cvmfs to not use any proxy to test timeout setting with direct connection
 	print 'Configuring cvmfs without proxy... ';
 	system("sudo $RealBin/config_cvmfs_noproxy.sh");
 	print "Done.\n";
@@ -177,6 +201,16 @@ if (defined ($pid) and $pid == 0) {
 	@pids = get_daemon_output($socket, @pids);
 	sleep 5;
 	print "All services started.\n";
+	
+	# Exiting if break_point is set to 1
+	if ($break_point == 3) {
+			close_test_socket($socket, $ctxt);
+			
+			$shell_socket->send("Exiting at breakpoint $break_point. Good debug.\n");
+			$shell_socket->send("END\n");
+			close_test_socket($shell_socket, $shell_ctxt);
+			exit 0;
+	}
 
 	# For this test, we shouldn't be able to mount the repo. If possibile, setting its variable
 	# to 1.
