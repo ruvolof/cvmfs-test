@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 use ZeroMQ qw/:all/;
-use Tests::Common qw (get_daemon_output killing_services check_repo setup_environment restart_cvmfs_services check_mount_timeout set_stdout_stderr open_test_socket close_test_socket open_shellout_socket);
+use Tests::Common qw (get_daemon_output killing_services check_repo setup_environment restart_cvmfs_services check_mount_timeout set_stdout_stderr open_test_socket close_test_socket open_shellout_socket restore_dns);
 use Getopt::Long;
 use FindBin qw($RealBin);
 
@@ -15,6 +15,7 @@ my $errorfile = '/var/log/cvmfs-test/dns_timeout.err';
 my $no_clean = undef;
 my $do_all = undef;
 my $shell_path = '127.0.0.1:6651';
+my $restore_b = undef;
 
 # Socket name is set to let the server to select
 # the socket where to send its response.
@@ -36,7 +37,13 @@ my $ret = GetOptions ( "stdout=s" => \$outputfile,
 					   "stderr=s" => \$errorfile,
 					   "no-clean" => \$no_clean,
 					   "do-all" => \$do_all,
-					   "shell-path=s" => \$shell_path );
+					   "shell-path=s" => \$shell_path,
+					   "restore" => \$restore_b );
+					   
+if ($restore_b) {
+	restore_dns();
+	exit 0;
+}
 
 
 # Forking the process so the daemon can come back in listening mode.
@@ -186,15 +193,7 @@ if (defined ($pid) and $pid == 0) {
 
 	restart_cvmfs_services();
 	
-	# Restoring resolv.conf
-	print 'Restoring resolv.conf backup... ';
-	system("sudo cp $resolv_temp /etc/resolv.conf");
-	print "Done.\n";
-	
-	# Restarting iptables, it will load previously saved rules
-	print 'Restoring iptables rules... ';
-	system('sudo Tests/Common/iptables_rules.sh restore');
-	print "Done.\n";
+	restore_dns();
 	
 	close_test_socket($socket, $ctxt);
 	
